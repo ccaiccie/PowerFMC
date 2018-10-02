@@ -18,12 +18,12 @@ REST account password
 
     param
     (
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$fmcHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$username,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$password
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$fmcHost='https://fmcrestapisandbox.cisco.com',
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$username='davdecke',
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$password='YDgQ7CBR'
 
     )
 Begin {
@@ -54,12 +54,15 @@ $AuthAccessToken = $AuthResponse.Headers.Item('X-auth-access-token')
         }
 End {
 $output = New-Object -TypeName psobject
+$output | Add-Member -MemberType NoteProperty -Name fmcHost          -Value $fmcHost
 $output | Add-Member -MemberType NoteProperty -Name Domain          -Value $Domain
 $output | Add-Member -MemberType NoteProperty -Name AuthAccessToken -Value $AuthAccessToken
 $output
     }
 }
 
+# Get-FMCAuthToken -fmcHost 'https://fmcrestapisandbox.cisco.com' -username 'davdecke' -password 'YDgQ7CBR'
+# import-module PowerFMC -force
 
 function Get-FMCNetworkObjects {
 <#
@@ -79,6 +82,8 @@ Domain UUID
 
     param
     (
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$name="*",
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$fmcHost,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
@@ -102,13 +107,27 @@ add-type @"
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
       }
 Process {
-$uri = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/networks"
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
-$response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
-$NetObjects = @()
-$response.items.links.self | foreach {
-    $NetObjects += Invoke-RestMethod -Method Get -Uri $_ -Headers $headers
-                                     }
+ $uri         = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/networks?offset=0&limit=25"
+ $headers     = @{ "X-auth-access-token" = "$AuthAccessToken" }
+ $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+ [int]$pages  = $response.paging.pages
+ [int]$offset = 0
+ $items       = @()
+ $items       = $response.items
+ while ($pages -gt 1) {
+    [int]$offset = $offset+25
+    $uri         = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/networks?offset=$offset&limit=25"
+    $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+    $items      += $response.items
+    $pages--
+                      }
+ $NetObjects = @()
+ $items      = $items | Where-Object {$_.name -like "$name"}
+ $items.links.self | foreach {
+    $response    = Invoke-RestMethod -Method Get -Uri "$_" -Headers $headers
+    $NetObjects += $response
+                             }
+
         }
 End {
 $NetObjects 
@@ -329,3 +348,5 @@ $response
         }
 End {}
 }
+
+
