@@ -409,3 +409,111 @@ $response
         }
 
 }
+
+function Get-FMCPortObject {
+
+    param
+    (
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$name,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$fmcHost,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthAccessToken
+    )
+
+Begin   {
+add-type @"
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertsPolicy : ICertificatePolicy {
+        public bool CheckValidationResult(
+            ServicePoint srvPoint, X509Certificate certificate,
+            WebRequest request, int certificateProblem) {
+            return true;
+        }
+    }
+"@
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+[System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+        }
+Process {
+$uri     = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects"
+$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
+
+$response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+$pages = $response.paging.pages
+$items = $response.items
+$offset = 0
+while ($pages -gt 1) {
+    $offset   = $offset+25
+    $pages--
+    $uri      = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects?offset=$offset&limit=25"
+    $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+    $items   += $response.items
+                     }
+$response = @()
+$items.links.self | foreach {
+    $response += Invoke-RestMethod -Method Get -Uri $_ -Headers $headers
+                            }
+        }
+End     {
+$response
+        }
+}
+
+function New-FMCPortObject {
+
+    param
+    (
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$fmcHost,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthAccessToken,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$name,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$protocol,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$port,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$description,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$overridable="false"
+    )
+
+Begin   {
+add-type @"
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertsPolicy : ICertificatePolicy {
+        public bool CheckValidationResult(
+            ServicePoint srvPoint, X509Certificate certificate,
+            WebRequest request, int certificateProblem) {
+            return true;
+        }
+    }
+"@
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+[System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+        }
+Process {
+$uri     = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects"
+$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
+$name    = $name -replace '(\\|\/|\s)','_'
+$body    = New-Object -TypeName psobject
+$body | Add-Member -MemberType NoteProperty -name type        -Value "ProtocolPortObject"
+$body | Add-Member -MemberType NoteProperty -name port        -Value "$port"
+$body | Add-Member -MemberType NoteProperty -name protocol    -Value "$protocol"
+$body | Add-Member -MemberType NoteProperty -name description -Value "$description"
+$body | Add-Member -MemberType NoteProperty -name name        -Value "$name"
+
+$response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
+$response
+        }
+End     {}
+}
