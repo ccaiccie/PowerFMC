@@ -1,5 +1,4 @@
-
-function Get-FMCAuthToken {
+function New-FMCAuthToken {
 <#
  .SYNOPSIS
 Obtains Domain UUID and X-auth-access-token
@@ -7,7 +6,7 @@ Obtains Domain UUID and X-auth-access-token
 This cmdlet will invoke a REST post against the FMC API, authenticate, and provide an X-auth-access-token and
 Domain UUID for use in other functions
  .EXAMPLE
-# Get-FMCAuthToken -fmcHost 'https://fmcrestapisandbox.cisco.com' -username 'davdecke' -password 'YDgQ7CBR'
+# New-FMCAuthToken -fmcHost 'https://fmcrestapisandbox.cisco.com' -username 'davdecke' -password 'YDgQ7CBR'
  .PARAMETER fmcHost
 Base URL of FMC
  .PARAMETER username
@@ -138,7 +137,7 @@ Create network objects in FMC
 This cmdlet will invoke a REST request against the FMC API and retrieve items under /object/networks
  .EXAMPLE
 # $fmcHost = 'https://fmcrestapisandbox.cisco.com'
-# $a = Get-FMCAuthToken -fmcHost $fmcHost -username 'davdecke' -password 'xxxxxx'
+# $a = New-FMCAuthToken -fmcHost $fmcHost -username 'davdecke' -password 'xxxxxx'
 # $a | New-FMCNetworkObject -fmcHost $fmcHost -name 'PowerFMC_172.21.33.0/24' -Network "172.21.33.0" -Prefix 24 -description "Test Object for PowerFMC 2"
  .PARAMETER fmcHost
 Base URL of FMC
@@ -269,7 +268,7 @@ Create network groups in FMC
 This cmdlet will invoke a REST request against the FMC API and create Network Groups
  .EXAMPLE
 # $fmcHost = 'https://fmcrestapisandbox.cisco.com'
-# $a = Get-FMCAuthToken -fmcHost $fmcHost -username 'davdecke' -password 'xxxxxx'
+# $a = New-FMCAuthToken -fmcHost $fmcHost -username 'davdecke' -password 'xxxxxx'
 # $a | New-FMCNetworkGroup -fmcHost $fmcHost -name 'PowerFMC_TestGroup' -members 'PowerFMC_TestObj1,PowerFMC_TestObj2,PowerFMC_TestObj3' -description "Group for PowerFMC"
  .PARAMETER fmcHost
 Base URL of FMC
@@ -410,12 +409,48 @@ $response
 
 }
 
+function New-FMCObject {
+    param
+    (
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthAccessToken,
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+            [string]$uri,
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+            [string]$object
+    )
+
+Begin   {
+add-type @"
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertsPolicy : ICertificatePolicy {
+        public bool CheckValidationResult(
+            ServicePoint srvPoint, X509Certificate certificate,
+            WebRequest request, int certificateProblem) {
+            return true;
+        }
+    }
+"@
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+[System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+         }
+Process {
+$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
+$response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $object
+        }
+End     {
+$response
+        }
+
+}
+
 function Get-FMCPortObject {
 
     param
     (
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$name,
+            [string]$name="*",
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$fmcHost,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
@@ -455,12 +490,31 @@ while ($pages -gt 1) {
     $items   += $response.items
                      }
 $response = @()
+$items = $items | Where-Object {$_.name -like $name}
 $items.links.self | foreach {
     $response += Invoke-RestMethod -Method Get -Uri $_ -Headers $headers
+                            }
+$uri     = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/icmpv4objects"
+$response_icmp = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+$pages = $response_icmp.paging.pages
+$items = $response_icmp.items
+$offset = 0
+while ($pages -gt 1) {
+    $offset   = $offset+25
+    $pages--
+    $uri      = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/icmpv4objects?offset=$offset&limit=25"
+    $response_icmp = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+    $items   += $response.items
+                     }
+$response_icmp = @()
+$items = $items | Where-Object {$_.name -like $name}
+$items.links.self | foreach {
+    $response_icmp += Invoke-RestMethod -Method Get -Uri $_ -Headers $headers
                             }
         }
 End     {
 $response
+$response_icmp
         }
 }
 
@@ -468,12 +522,6 @@ function New-FMCPortObject {
 
     param
     (
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$fmcHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$name,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
@@ -483,7 +531,67 @@ function New-FMCPortObject {
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$description,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$overridable="false"
+            [string]$overridable="false",
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$fmcHost,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthAccessToken
+    )
+
+Begin   {
+add-type @"
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertsPolicy : ICertificatePolicy {
+        public bool CheckValidationResult(
+            ServicePoint srvPoint, X509Certificate certificate,
+            WebRequest request, int certificateProblem) {
+            return true;
+        }
+    }
+"@
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+[System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+        }
+Process {
+$uri     = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects"
+$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
+$name    = $name -replace '(\\|\/|\s)','_'
+$body    = New-Object -TypeName psobject
+$body | Add-Member -MemberType NoteProperty -name type        -Value "ProtocolPortObject"
+$body | Add-Member -MemberType NoteProperty -name port        -Value "$port"
+$body | Add-Member -MemberType NoteProperty -name protocol    -Value "$protocol"
+$body | Add-Member -MemberType NoteProperty -name description -Value "$description"
+$body | Add-Member -MemberType NoteProperty -name name        -Value "$name"
+
+$response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
+$response
+        }
+End     {}
+}
+
+function New-FMCPortGroup {
+
+    param
+    (
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$name,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$protocol,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$port,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$description,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$overridable="false",
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$fmcHost,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthAccessToken
     )
 
 Begin   {
