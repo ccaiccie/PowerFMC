@@ -61,9 +61,6 @@ $output
     }
 }
 
-# Get-FMCAuthToken -fmcHost 'https://fmcrestapisandbox.cisco.com' -username 'davdecke' -password 'YDgQ7CBR'
-# import-module PowerFMC -force
-
 function Get-FMCNetworkObjects {
 <#
  .SYNOPSIS
@@ -112,7 +109,6 @@ Process {
  $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
  [int]$pages  = $response.paging.pages
  [int]$offset = 0
- $items       = @()
  $items       = $response.items
  while ($pages -gt 1) {
     [int]$offset = $offset+25
@@ -122,7 +118,7 @@ Process {
     $pages--
                       }
  $NetObjects = @()
- $items      = $items | Where-Object {$_.name -like "$name"}
+ $items      = $items | Where-Object {$_.name -like $name}
  $items.links.self | foreach {
     $response    = Invoke-RestMethod -Method Get -Uri "$_" -Headers $headers
     $NetObjects += $response
@@ -133,7 +129,6 @@ End {
 $NetObjects 
     }
 }
-
 
 function New-FMCNetworkObject {
 <#
@@ -211,7 +206,6 @@ $response
 End {}
 }
 
-
 function Get-FMCNetworkGroups {
 <#
  .SYNOPSIS
@@ -266,7 +260,6 @@ $NetObjects
 
 End {}
 }
-
 
 function New-FMCNetworkGroup {
 <#
@@ -349,4 +342,70 @@ $response
 End {}
 }
 
+function Get-FMCObject {
+    param
+    (
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthAccessToken,
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+            [string]$link
+    )
 
+Begin   {
+add-type @"
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertsPolicy : ICertificatePolicy {
+        public bool CheckValidationResult(
+            ServicePoint srvPoint, X509Certificate certificate,
+            WebRequest request, int certificateProblem) {
+            return true;
+        }
+    }
+"@
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+[System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+         }
+Process {
+$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
+$response = Invoke-RestMethod -Method Get -Uri $link -Headers $headers
+        }
+End     {
+$response
+        }
+
+}
+
+function Remove-FMCObject {
+    param
+    (
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthAccessToken,
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+            [string]$link
+    )
+
+Begin   {
+add-type @"
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertsPolicy : ICertificatePolicy {
+        public bool CheckValidationResult(
+            ServicePoint srvPoint, X509Certificate certificate,
+            WebRequest request, int certificateProblem) {
+            return true;
+        }
+    }
+"@
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+[System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+         }
+Process {
+$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
+$response = Invoke-RestMethod -Method Delete -Uri $link -Headers $headers
+        }
+End     {
+$response
+        }
+
+}
