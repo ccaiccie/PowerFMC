@@ -24,7 +24,7 @@ GUID = 'cdab7a61-ad29-468a-9230-17bcba8f4841'
 Author = 'davdecke@cisco.com'
 
 # Company or vendor of this module
-CompanyName = 'Cisco'
+CompanyName = ''
 
 # Copyright statement for this module
 Copyright = '(c) 2018 davdecke. All rights reserved.'
@@ -74,7 +74,11 @@ FunctionsToExport =
     "Get-FMCNetworkObjects",
     "New-FMCNetworkObject",
     "Get-FMCNetworkGroups",
-    "New-FMCNetworkGroup"
+    "New-FMCNetworkGroup",
+    "Get-FMCObject",
+    "Remove-FMCObject",
+    "Get-FMCPortObject",
+    "New-FMCPortObject"
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = '*'
