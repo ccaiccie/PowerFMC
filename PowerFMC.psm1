@@ -17,7 +17,7 @@ REST account password
     param
     (
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$fmcHost='https://fmcrestapisandbox.cisco.com',
+            [string]$FMCHost='https://fmcrestapisandbox.cisco.com',
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$username='davdecke',
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
@@ -41,7 +41,7 @@ add-type @"
 Process {
 $credPair = "$($username):$($password)"
 $encodedCredentials = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes($credPair))
-$uri = "$fmcHost/api/fmc_platform/v1/auth/generatetoken"
+$uri = "$FMCHost/api/fmc_platform/v1/auth/generatetoken"
 $headers = @{ Authorization = "Basic $encodedCredentials" }
 $AuthResponse = Invoke-WebRequest -Uri $uri -Headers $headers -Method Post
 $Domain =  $AuthResponse.Headers.Item('DOMAIN_UUID')
@@ -49,7 +49,7 @@ $AuthAccessToken = $AuthResponse.Headers.Item('X-auth-access-token')
         }
 End {
 $output = New-Object -TypeName psobject
-$output | Add-Member -MemberType NoteProperty -Name fmcHost          -Value $fmcHost
+$output | Add-Member -MemberType NoteProperty -Name fmcHost          -Value $FMCHost
 $output | Add-Member -MemberType NoteProperty -Name Domain          -Value $Domain
 $output | Add-Member -MemberType NoteProperty -Name AuthAccessToken -Value $AuthAccessToken
 $output
@@ -73,9 +73,9 @@ Domain UUID
     param
     (
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$name="*",
+            [string]$Name="*",
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$fmcHost,
+            [string]$FMCHost,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$AuthAccessToken,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
@@ -97,7 +97,7 @@ add-type @"
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
       }
 Process {
- $uri         = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/networks?offset=0&limit=25"
+ $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networks?offset=0&limit=25"
  $headers     = @{ "X-auth-access-token" = "$AuthAccessToken" }
  $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
  [int]$pages  = $response.paging.pages
@@ -105,13 +105,13 @@ Process {
  $items       = $response.items
  while ($pages -gt 1) {
     [int]$offset = $offset+25
-    $uri         = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/networks?offset=$offset&limit=25"
+    $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networks?offset=$offset&limit=25"
     $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
     $items      += $response.items
     $pages--
                       }
  $NetObjects = @()
- $items      = $items | Where-Object {$_.name -like $name}
+ $items      = $items | Where-Object {$_.name -like $Name}
  $items.links.self | foreach {
     $response    = Invoke-RestMethod -Method Get -Uri "$_" -Headers $headers
     $NetObjects += $response
@@ -128,9 +128,9 @@ Create network objects in FMC
  .DESCRIPTION
 This cmdlet will invoke a REST request against the FMC API and retrieve items under /object/networks
  .EXAMPLE
-# $fmcHost = 'https://fmcrestapisandbox.cisco.com'
-# $a = New-FMCAuthToken -fmcHost $fmcHost -username 'davdecke' -password 'xxxxxx'
-# $a | New-FMCNetworkObject -fmcHost $fmcHost -name 'PowerFMC_172.21.33.0/24' -Network "172.21.33.0" -Prefix 24 -description "Test Object for PowerFMC 2"
+# $FMCHost = 'https://fmcrestapisandbox.cisco.com'
+# $a = New-FMCAuthToken -fmcHost $FMCHost -username 'davdecke' -password 'xxxxxx'
+# $a | New-FMCNetworkObject -fmcHost $FMCHost -name 'PowerFMC_172.21.33.0/24' -Network "172.21.33.0" -Prefix 24 -description "Test Object for PowerFMC 2"
  .PARAMETER fmcHost
 Base URL of FMC
  .PARAMETER AuthAccessToken
@@ -147,19 +147,18 @@ Prefix length for network (32 for host)
     param
     (
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$name,
+            [string]$Name,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$description,
+            [string]$Description,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$overridable="false",
+            [string]$Overridable="false",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
         [ValidateSet("network","host","range")]
             [string]$type="network",
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$Network,
-       
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$fmcHost,
+            [string]$FMCHost,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$Domain,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
@@ -181,14 +180,14 @@ add-type @"
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
         }
 Process {
-$uri = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/networks"
+$uri = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networks"
 $headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
-$name = $name -replace '(\\|\/|\s)','_'
+$Name = $Name -replace '(\\|\/|\s)','_'
 $body = New-Object -TypeName psobject
-$body | Add-Member -MemberType NoteProperty -name name        -Value $name
+$body | Add-Member -MemberType NoteProperty -name name        -Value $Name
 $body | Add-Member -MemberType NoteProperty -name value       -Value "$Network"
-$body | Add-Member -MemberType NoteProperty -name overridable -Value $overridable
-$body | Add-Member -MemberType NoteProperty -name description -Value "$description"
+$body | Add-Member -MemberType NoteProperty -name overridable -Value $Overridable
+$body | Add-Member -MemberType NoteProperty -name description -Value "$Description"
 $body | Add-Member -MemberType NoteProperty -name type        -Value $type
  
 $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
@@ -213,8 +212,10 @@ Domain UUID
 /#>
     param
     (
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Name="*",
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$fmcHost,
+            [string]$FMCHost,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$AuthAccessToken,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
@@ -236,16 +237,30 @@ add-type @"
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
       }
 Process {
-$uri = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/networkgroups"
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
-$response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
-$NetObjects = @()
-$response.items.links.self | foreach {
-    $NetObjects += Invoke-RestMethod -Method Get -Uri $_ -Headers $headers
+ $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups?offset=0&limit=25"
+ $headers     = @{ "X-auth-access-token" = "$AuthAccessToken" }
+ $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+ [int]$pages  = $response.paging.pages
+ [int]$offset = 0
+ $items       = $response.items
+ while ($pages -gt 1) {
+    [int]$offset = $offset+25
+    $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups?offset=$offset&limit=25"
+    $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+    $items      += $response.items
+    $pages--
+                      }
+ $NetObjects = @()
+ $items      = $items | Where-Object {$_.name -like $Name}
+ $items.links.self | foreach {
+    $response    = Invoke-RestMethod -Method Get -Uri "$_" -Headers $headers
+    $NetObjects += $response
+                             }
+
         }
-$NetObjects
-}
-End {}
+End {
+$NetObjects 
+    }
 }
 function New-FMCNetworkGroup {
 <#
@@ -254,9 +269,9 @@ Create network groups in FMC
  .DESCRIPTION
 This cmdlet will invoke a REST request against the FMC API and create Network Groups
  .EXAMPLE
-# $fmcHost = 'https://fmcrestapisandbox.cisco.com'
-# $a = New-FMCAuthToken -fmcHost $fmcHost -username 'davdecke' -password 'xxxxxx'
-# $a | New-FMCNetworkGroup -fmcHost $fmcHost -name 'PowerFMC_TestGroup' -members 'PowerFMC_TestObj1,PowerFMC_TestObj2,PowerFMC_TestObj3' -description "Group for PowerFMC"
+# $FMCHost = 'https://fmcrestapisandbox.cisco.com'
+# $a = New-FMCAuthToken -fmcHost $FMCHost -username 'davdecke' -password 'xxxxxx'
+# $a | New-FMCNetworkGroup -fmcHost $FMCHost -name 'PowerFMC_TestGroup' -members 'PowerFMC_TestObj1,PowerFMC_TestObj2,PowerFMC_TestObj3' -description "Group for PowerFMC"
  .PARAMETER fmcHost
 Base URL of FMC
  .PARAMETER AuthAccessToken
@@ -273,15 +288,17 @@ Prefix length for network (32 for host)
     param
     (
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$name,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$members,
+            [string]$Name,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$description,
+            [string]$Members,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$overridable="false",
+            [string]$Prefixes,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Description,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Overridable="false",
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$fmcHost,
+            [string]$FMCHost,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$Domain,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
@@ -303,32 +320,36 @@ add-type @"
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
         }
 Process {
-$uri = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/networkgroups"
+$uri = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups"
 $headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
-$name = $name -replace '(\\|\/|\s)','_'
-$members = $members -split ','
-$members
+$Name = $Name -replace '(\\|\/|\s)','_'
+$MemberArray = $Members -split ','
+$objects = @()
+$MemberArray | foreach {
+            $Member = Get-FMCNetworkObjects -name $_ -fmcHost $FMCHost -AuthAccessToken $AuthAccessToken -Domain $Domain
+            $object = New-Object psobject
+            $object | Add-Member -MemberType NoteProperty -Name id -Value $Member.id
+            $objects += $object
+                   }
+$Prefixes = $Prefixes -split ','
 $literals = @()
-$members | foreach {
-    $literal = New-Object -TypeName psobject
-    $literal | Add-Member -MemberType NoteProperty -Name type -Value "host"
-    $literal | Add-Member -MemberType NoteProperty -Name value -Value $_
-    $literals += $literal
+$Prefixes | foreach {
+             $literal = New-Object psobject
+             $literal | Add-Member -MemberType NoteProperty -Name value -Value $_
+             $literals += $literal
                     }
 $body = New-Object -TypeName psobject
 $body | Add-Member -MemberType NoteProperty -name type        -Value "NetworkGroup"
+$body | Add-Member -MemberType NoteProperty -name objects     -Value $objects
 $body | Add-Member -MemberType NoteProperty -name literals    -Value $literals
-$body | Add-Member -MemberType NoteProperty -name overridable -Value $overridable
-$body | Add-Member -MemberType NoteProperty -name description -Value "$description"
-$body | Add-Member -MemberType NoteProperty -name name       -Value  "$name"
- 
+$body | Add-Member -MemberType NoteProperty -name overridable -Value $Overridable
+$body | Add-Member -MemberType NoteProperty -name description -Value "$Description"
+$body | Add-Member -MemberType NoteProperty -name name        -Value "$Name"
+
 $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
 $response
         }
-End {
-$body | ConvertTo-Json
-$literals
-}
+End {}
 }
 function Get-FMCObject {
     param
@@ -387,10 +408,9 @@ add-type @"
 Process {
 $headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
 $response = Invoke-RestMethod -Method Delete -Uri $uri -Headers $headers
-        }
-End     {
 $response
         }
+End {}
 }
 function New-FMCObject {
     param
@@ -429,9 +449,9 @@ function Get-FMCPortObject {
     param
     (
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$name="*",
+            [string]$Name="*",
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$fmcHost,
+            [string]$FMCHost,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$Domain,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
@@ -453,7 +473,7 @@ add-type @"
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
         }
 Process {
-$uri     = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects"
+$uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects"
 $headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
 $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
 $pages = $response.paging.pages
@@ -462,16 +482,16 @@ $offset = 0
 while ($pages -gt 1) {
     $offset   = $offset+25
     $pages--
-    $uri      = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects?offset=$offset&limit=25"
+    $uri      = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects?offset=$offset&limit=25"
     $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
     $items   += $response.items
                      }
 $response = @()
-$items = $items | Where-Object {$_.name -like $name}
+$items = $items | Where-Object {$_.name -like $Name}
 $items.links.self | foreach {
     $response += Invoke-RestMethod -Method Get -Uri $_ -Headers $headers
                             }
-$uri     = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/icmpv4objects"
+$uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/icmpv4objects"
 $response_icmp = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
 $pages = $response_icmp.paging.pages
 $items = $response_icmp.items
@@ -479,12 +499,12 @@ $offset = 0
 while ($pages -gt 1) {
     $offset   = $offset+25
     $pages--
-    $uri      = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/icmpv4objects?offset=$offset&limit=25"
+    $uri      = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/icmpv4objects?offset=$offset&limit=25"
     $response_icmp = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
     $items   += $response.items
                      }
 $response_icmp = @()
-$items = $items | Where-Object {$_.name -like $name}
+$items = $items | Where-Object {$_.name -like $Name}
 $items.links.self | foreach {
     $response_icmp += Invoke-RestMethod -Method Get -Uri $_ -Headers $headers
                             }
@@ -498,17 +518,17 @@ function New-FMCPortObject {
     param
     (
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$name,
+            [string]$Name,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$protocol,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$port,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$description,
+            [string]$Description,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$overridable="false",
+            [string]$Overridable="false",
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$fmcHost,
+            [string]$FMCHost,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$Domain,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
@@ -530,15 +550,15 @@ add-type @"
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
         }
 Process {
-$uri     = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects"
+$uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects"
 $headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
-$name    = $name -replace '(\\|\/|\s)','_'
+$Name    = $Name -replace '(\\|\/|\s)','_'
 $body    = New-Object -TypeName psobject
 $body | Add-Member -MemberType NoteProperty -name type        -Value "ProtocolPortObject"
 $body | Add-Member -MemberType NoteProperty -name port        -Value "$port"
 $body | Add-Member -MemberType NoteProperty -name protocol    -Value "$protocol"
-$body | Add-Member -MemberType NoteProperty -name description -Value "$description"
-$body | Add-Member -MemberType NoteProperty -name name        -Value "$name"
+$body | Add-Member -MemberType NoteProperty -name description -Value "$Description"
+$body | Add-Member -MemberType NoteProperty -name name        -Value "$Name"
 $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
 $response
         }
@@ -548,17 +568,17 @@ function New-FMCPortGroup {
     param
     (
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$name,
+            [string]$Name,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$protocol,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$port,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$description,
+            [string]$Description,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$overridable="false",
+            [string]$Overridable="false",
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$fmcHost,
+            [string]$FMCHost,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$Domain,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
@@ -580,15 +600,15 @@ add-type @"
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
         }
 Process {
-$uri     = "$fmcHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects"
+$uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects"
 $headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
-$name    = $name -replace '(\\|\/|\s)','_'
+$Name    = $Name -replace '(\\|\/|\s)','_'
 $body    = New-Object -TypeName psobject
 $body | Add-Member -MemberType NoteProperty -name type        -Value "ProtocolPortObject"
 $body | Add-Member -MemberType NoteProperty -name port        -Value "$port"
 $body | Add-Member -MemberType NoteProperty -name protocol    -Value "$protocol"
-$body | Add-Member -MemberType NoteProperty -name description -Value "$description"
-$body | Add-Member -MemberType NoteProperty -name name        -Value "$name"
+$body | Add-Member -MemberType NoteProperty -name description -Value "$Description"
+$body | Add-Member -MemberType NoteProperty -name name        -Value "$Name"
 $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
 $response
         }
