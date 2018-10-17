@@ -21,7 +21,7 @@ REST account password
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$username='davdecke',
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$password='YDgQ7CBR'
+            [string]$password='EZnFnvCd'
     )
 Begin {
 add-type @"
