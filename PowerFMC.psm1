@@ -79,7 +79,9 @@ Domain UUID
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$AuthAccessToken,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain
+            [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$false)]
+            [switch]$Terse
     )
 Begin {
 add-type @"
@@ -110,12 +112,17 @@ Process {
     $items      += $response.items
     $pages--
                       }
+if ($Terse.IsPresent) {
+        $NetObjects = @()
+        $NetObjects = $items
+                      } else {
  $NetObjects = @()
  $items      = $items | Where-Object {$_.name -like $Name}
  $items.links.self | foreach {
     $response    = Invoke-RestMethod -Method Get -Uri "$_" -Headers $headers
     $NetObjects += $response
                              }
+                            }
         }
 End {
 $NetObjects 
@@ -323,14 +330,18 @@ Process {
 $uri = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups"
 $headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
 $Name = $Name -replace '(\\|\/|\s)','_'
+
 $MemberArray = $Members -split ','
+$NetworkObjects = Get-FMCNetworkObjects -fmcHost $FMCHost -AuthAccessToken $AuthAccessToken -Domain $Domain -Terse
 $objects = @()
 $MemberArray | foreach {
-            $Member = Get-FMCNetworkObjects -name $_ -fmcHost $FMCHost -AuthAccessToken $AuthAccessToken -Domain $Domain
+            $NetworkObject = $NetworkObjects | Where-Object -Property name -EQ $_
+            $id = $NetworkObject.id
             $object = New-Object psobject
-            $object | Add-Member -MemberType NoteProperty -Name id -Value $Member.id
+            $object | Add-Member -MemberType NoteProperty -Name id -Value $id
             $objects += $object
                    }
+
 $Prefixes = $Prefixes -split ','
 $literals = @()
 $Prefixes | foreach {
@@ -340,12 +351,11 @@ $Prefixes | foreach {
                     }
 $body = New-Object -TypeName psobject
 $body | Add-Member -MemberType NoteProperty -name type        -Value "NetworkGroup"
-$body | Add-Member -MemberType NoteProperty -name objects     -Value $objects
-$body | Add-Member -MemberType NoteProperty -name literals    -Value $literals
+if ($Members) {$body | Add-Member -MemberType NoteProperty -name objects  -Value $objects}
+if ($Prefixes){$body | Add-Member -MemberType NoteProperty -name literals -Value $literals}
 $body | Add-Member -MemberType NoteProperty -name overridable -Value $Overridable
 $body | Add-Member -MemberType NoteProperty -name description -Value "$Description"
 $body | Add-Member -MemberType NoteProperty -name name        -Value "$Name"
-
 $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
 $response
         }
