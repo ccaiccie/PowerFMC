@@ -1,0 +1,28 @@
+$newGroup = New-Object psobject
+$newGroup |  Add-Member -MemberType NoteProperty -name type        -Value "NetworkGroup"
+ $object = New-Object psobject
+# $object | Add-Member -MemberType NoteProperty -Name type -Value "network"
+# $object | Add-Member -MemberType NoteProperty -Name name -Value "10.100.0.0_16"
+ $object | Add-Member -MemberType NoteProperty -Name id -Value "005056BB-0B24-0ed3-0000-399431958661"
+ $objects = @()
+ $objects += $object
+ $object = New-Object psobject
+# $object | Add-Member -MemberType NoteProperty -Name type -Value "network"
+# $object | Add-Member -MemberType NoteProperty -Name name -Value "10.190.0.0_16"
+ $object | Add-Member -MemberType NoteProperty -Name id -Value "005056BB-0B24-0ed3-0000-399431958687"
+ $objects += $object
+$newGroup | Add-Member -MemberType NoteProperty -Name objects -Value $objects
+ $literal = New-Object psobject
+# $literal | Add-Member -MemberType NoteProperty -Name type -Value "host"
+ $literal | Add-Member -MemberType NoteProperty -Name value -Value "10.1.1.1"
+ $literals = @()
+ $literals += $literal
+$newGroup | Add-Member -MemberType NoteProperty -Name literals -Value $literals
+$newGroup | Add-Member -MemberType NoteProperty -Name overridable -Value "false"
+$newGroup | Add-Member -MemberType NoteProperty -Name description -Value "tst copy"
+$newGroup | Add-Member -MemberType NoteProperty -Name name -Value "tst_copy4"
+
+
+
+$a | New-FMCObject -object ($newGroup | ConvertTo-Json) -uri "https://fmcrestapisandbox.cisco.com/api/fmc_config/v1/domain/e276abec-e0f2-11e3-8169-6d9ed49b625f/object/networkgroups"
+
