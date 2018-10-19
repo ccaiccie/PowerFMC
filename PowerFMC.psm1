@@ -461,9 +461,10 @@ add-type @"
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+if ($Terse) {$Expanded='false'} else {$Expanded='true'}
       }
 Process {
- $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networks?offset=0&limit=25"
+ $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networks?offset=0&limit=25&expanded=$Expanded"
  $headers     = @{ "X-auth-access-token" = "$AuthAccessToken" }
  $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
  [int]$pages  = $response.paging.pages
@@ -471,22 +472,12 @@ Process {
  $items       = $response.items
  while ($pages -gt 1) {
     [int]$offset = $offset+25
-    $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networks?offset=$offset&limit=25"
+    $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networks?offset=$offset&limit=25&expanded=$Expanded"
     $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
     $items      += $response.items
     $pages--
                       }
-if ($Terse.IsPresent) {
-        $NetObjects = @()
-        $NetObjects = $items
-                      } else {
- $NetObjects = @()
- $items      = $items | Where-Object {$_.name -like $Name}
- $items.links.self | foreach {
-    $response    = Invoke-RestMethod -Method Get -Uri "$_" -Headers $headers
-    $NetObjects += $response
-                             }
-                            }
+$NetObjects      = $items | Where-Object {$_.name -like $Name}
         }
 End {
 $NetObjects 
@@ -516,7 +507,9 @@ Domain UUID
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$AuthAccessToken,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain
+            [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [switch]$Terse
     )
 Begin {
 add-type @"
@@ -532,9 +525,10 @@ add-type @"
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+if ($Terse) {$Expanded='false'} else {$Expanded='true'}
       }
 Process {
- $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups?offset=0&limit=25"
+ $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups?offset=0&limit=25&expanded=$Expanded"
  $headers     = @{ "X-auth-access-token" = "$AuthAccessToken" }
  $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
  [int]$pages  = $response.paging.pages
@@ -542,18 +536,12 @@ Process {
  $items       = $response.items
  while ($pages -gt 1) {
     [int]$offset = $offset+25
-    $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups?offset=$offset&limit=25"
+    $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups?offset=$offset&limit=25&expanded=$Expanded"
     $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
     $items      += $response.items
     $pages--
                       }
- $NetObjects = @()
- $items      = $items | Where-Object {$_.name -like $Name}
- $items.links.self | foreach {
-    $response    = Invoke-RestMethod -Method Get -Uri "$_" -Headers $headers
-    $NetObjects += $response
-                             }
-
+ $NetObjects      = $items | Where-Object {$_.name -like $Name}
         }
 End {
 $NetObjects 
@@ -587,50 +575,41 @@ add-type @"
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+if ($Terse) {$Expanded='false'} else {$Expanded='true'}
         }
 Process {
-$uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects"
+$offset = 0
+$uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects?offset=$offset&limit=25&expanded=$Expanded"
 $headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
 $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
 $pages = $response.paging.pages
 $items = $response.items
-$offset = 0
 while ($pages -gt 1) {
     $offset   = $offset+25
     $pages--
-    $uri      = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects?offset=$offset&limit=25"
+    $uri      = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects?offset=$offset&limit=25&expanded=$Expanded"
     $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
     $items   += $response.items
                      }
 $response = @()
-if ($Terse) { $response = $items} else {
-$items = $items | Where-Object {$_.name -like $Name}
-$items.links.self | foreach {
-    $response += Invoke-RestMethod -Method Get -Uri $_ -Headers $headers
-                            }}
-$uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/icmpv4objects"
+$offset = 0
+$uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/icmpv4objects?offset=$offset&limit=25&expanded=$Expanded"
 $response_icmp = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
 $pages = $response_icmp.paging.pages
-$items = $response_icmp.items
-$offset = 0
+$items += $response_icmp.items
 while ($pages -gt 1) {
     $offset   = $offset+25
     $pages--
-    $uri      = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/icmpv4objects?offset=$offset&limit=25"
+    $uri      = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/icmpv4objects?offset=$offset&limit=25&expanded=$Expanded"
     $response_icmp = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
     $items   += $response.items
                      }
 $response_icmp = @()
-if ($Terse) { $response_icmp = $items} else {
-$items = $items | Where-Object {$_.name -like $Name}
-$items.links.self | foreach {
-    $response_icmp += Invoke-RestMethod -Method Get -Uri $_ -Headers $headers
-                            }}
+$PortObj = $items | Where-Object {$_.name -like $Name}
         }
-End     {
-$response
-$response_icmp
-        }
+End {
+$PortObj 
+    }
 }
 function Get-FMCPortGroups {
 <#
@@ -656,7 +635,9 @@ Domain UUID
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$AuthAccessToken,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain
+            [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [switch]$Terse
     )
 Begin {
 add-type @"
@@ -672,9 +653,11 @@ add-type @"
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+if ($Terse) {$Expanded='false'} else {$Expanded='true'}
       }
 Process {
- $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/portobjectgroups?offset=0&limit=25"
+ [int]$offset = 0
+ $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/portobjectgroups?offset=$offset&limit=25&expanded=$Expanded"
  $headers     = @{ "X-auth-access-token" = "$AuthAccessToken" }
  $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
  [int]$pages  = $response.paging.pages
@@ -682,18 +665,12 @@ Process {
  $items       = $response.items
  while ($pages -gt 1) {
     [int]$offset = $offset+25
-    $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/portobjectgroups?offset=$offset&limit=25"
+    $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/portobjectgroups?offset=$offset&limit=25&expanded=$Expanded"
     $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
     $items      += $response.items
     $pages--
                       }
- $NetObjects = @()
- $items      = $items | Where-Object {$_.name -like $Name}
- $items.links.self | foreach {
-    $response    = Invoke-RestMethod -Method Get -Uri "$_" -Headers $headers
-    $NetObjects += $response
-                             }
-
+ $NetObjects     = $items | Where-Object {$_.name -like $Name}
         }
 End {
 $NetObjects 
@@ -790,6 +767,110 @@ while ($pages -gt 1) {
     $offset   = $offset+25
     $pages--
     $uri      = "$FMCHost/api/fmc_config/v1/domain/$Domain/policy/intrusionpolicies?offset=$offset&limit=25&expanded=$Expanded"
+    $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+    $items   += $response.items
+                     }
+$response = $items | Where-Object -Property name -Like "$Name"
+        }
+End     {
+$response
+        }
+}
+function Get-FMCAccessPolicyRules {
+    param
+    (
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$AccessPolicy,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$RuleName="*",
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthAccessToken,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$false)]
+            [switch]$Terse
+    )
+Begin   {
+add-type @"
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertsPolicy : ICertificatePolicy {
+        public bool CheckValidationResult(
+            ServicePoint srvPoint, X509Certificate certificate,
+            WebRequest request, int certificateProblem) {
+            return true;
+        }
+    }
+"@
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+[System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+if ($Terse) {$Expanded='false'} else {$Expanded='true'}
+         }
+Process {
+$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
+$ContainerUUID = Get-FMCAccessPolicies -Name $AccessPolicy -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$ContainerUUID = $ContainerUUID.id
+$uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/policy/accesspolicies/$ContainerUUID/accessrules?offset=0&limit=25&expanded=$Expanded"
+$response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+$pages = $response.paging.pages
+$items = $response.items
+$offset = 0
+while ($pages -gt 1) {
+    $offset   = $offset+25
+    $pages--
+    $uri      = "$FMCHost/api/fmc_config/v1/domain/$Domain/policy/accesspolicies/$ContainerUUID/accessrules?offset=$offset&limit=25&expanded=$Expanded"
+    $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+    $items   += $response.items
+                     }
+$response = $items | Where-Object -Property name -Like $RuleName
+        }
+End     {
+$response
+        }
+}
+function Get-FMCZone {
+    param
+    (
+        [Parameter(Mandatory=$false, ValueFromPipeline=$false)]
+            [string]$Name="*",
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthAccessToken,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$false)]
+            [switch]$Terse
+    )
+Begin   {
+add-type @"
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertsPolicy : ICertificatePolicy {
+        public bool CheckValidationResult(
+            ServicePoint srvPoint, X509Certificate certificate,
+            WebRequest request, int certificateProblem) {
+            return true;
+        }
+    }
+"@
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+[System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+if ($Terse) {$Expanded='false'} else {$Expanded='true'}
+         }
+Process {
+$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
+$uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/securityzones?offset=0&limit=25&expanded=$Expanded"
+$response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+$pages = $response.paging.pages
+$items = $response.items
+$offset = 0
+while ($pages -gt 1) {
+    $offset   = $offset+25
+    $pages--
+    $uri      = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/securityzones?offset=$offset&limit=25&expanded=$Expanded"
     $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
     $items   += $response.items
                      }
@@ -905,5 +986,288 @@ End     {
 
 ($body | ConvertTo-Json)
 $response
+        }
+}
+function New-FMCAccessPolicyRule {
+    param
+    (
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$Name,
+
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$AccessPolicy,
+
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [ValidateSet("ALLOW","TRUST","MONITOR","BLOCK","BLOCK_RESET","BLOCK_INTERACTIVE","BLOCK_RESET_INTERACTIVE")] 
+            [string]$Action,
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$SourceZones,
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$DestinationZones,
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$SourceNetworks,
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$DestinationNetworks,
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$SourcePorts,
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$DestinationPorts,
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [bool]$Enabled=$true,
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$IntrusionPolicy,
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [bool]$LogBegin=$false,
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [bool]$LogEnd=$true,
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [bool]$SendEventsToFMC=$true,
+
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost,
+
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthAccessToken,
+
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain
+    )
+Begin   {
+add-type @"
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertsPolicy : ICertificatePolicy {
+        public bool CheckValidationResult(
+            ServicePoint srvPoint, X509Certificate certificate,
+            WebRequest request, int certificateProblem) {
+            return true;
+        }
+    }
+"@
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+[System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+$AllZones        = Get-FMCZone -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$AllNetObjects   = @()
+$AllNetObjects   = Get-FMCNetworkObjects -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$AllNetObjects  += Get-FMCNetworkGroups  -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$AllPortObjects  = @()
+$AllPortObjects  = Get-FMCPortObject -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$AllPortObjects += Get-FMCPortGroups  -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+         }
+Process {
+$policyUUID = (Get-FMCAccessPolicies -Name $AccessPolicy -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse).id
+$uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/policy/accesspolicies/$policyUUID/accessrules"
+$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
+## Parsing Source or destination Security Zones
+
+if ($SourceZones -or $DestinationZones) {
+ if ($SourceZones)      {
+ $SourceZones_split = $SourceZones -split ','
+ $sZ = @()
+ $SourceZones_split | foreach {
+               $i = @()
+               $i = $AllZones | Where-Object -Property name -EQ $_
+               $Zone = New-Object psobject
+               $Zone | Add-Member -MemberType NoteProperty -Name name -Value $i.name
+               $Zone | Add-Member -MemberType NoteProperty -Name id   -Value $i.id
+               $Zone | Add-Member -MemberType NoteProperty -Name type -Value $i.type
+               $sZ += $Zone
+               }
+$sZones = New-Object psobject
+$sZones | Add-Member -MemberType NoteProperty -Name objects -Value $sZ
+ }
+ if ($DestinationZones) {
+$DestinationZones_split = $DestinationZones -split ','
+$dZ = @()
+$DestinationZones_split | foreach {
+               $i = @()
+               $i = $AllZones | Where-Object -Property name -EQ $_
+               $Zone = New-Object psobject
+               $Zone | Add-Member -MemberType NoteProperty -Name name -Value $i.name
+               $Zone | Add-Member -MemberType NoteProperty -Name id   -Value $i.id
+               $Zone | Add-Member -MemberType NoteProperty -Name type -Value $i.type
+               $dZ += $Zone
+               }
+$dZones = New-Object psobject
+$dZones | Add-Member -MemberType NoteProperty -Name objects -Value $dZ
+ }
+}
+## /Parsing Source or destination Security Zones
+
+## Parsing Source or destination networks
+if ($SourceNetworks -or $DestinationNetworks) {
+ if ($SourceNetworks) {
+$literals     = @()
+$objects      = @()
+$SourceNetObj = @()
+$SourceNetLit = @()
+$SourceNetworks_split = $SourceNetworks -split ','
+$SourceNetworks_split | foreach {
+                     if ($_ -match '(^\d+\.\d+\.\d+\.\d+$|^\d+\.\d+\.\d+\.\d+\/\d\d$|^\d+\.\d+\.\d+\.\d+\-\d+\.\d+\.\d+\.\d+$)') {
+                        $literals += $_} else {$objects += $_}}
+ if ($objects) { $objects | foreach {
+            $i = $AllNetObjects | Where-Object -Property name -EQ $_
+            $Obj = New-Object psobject
+            $Obj | Add-Member -MemberType NoteProperty -Name type -Value $i.type
+            $Obj | Add-Member -MemberType NoteProperty -Name name -Value $i.name
+            $Obj | Add-Member -MemberType NoteProperty -Name id   -Value $i.id
+            $SourceNetObj += $Obj
+            }}
+ if ($literals) { $literals | foreach {
+            $Obj = New-Object psobject
+            $Obj | Add-Member -MemberType NoteProperty -Name value -Value "$_"
+            $SourceNetLit += $Obj
+                              }
+
+                }
+ $sNets = New-Object psobject 
+ if ($SourceNetObj) { $sNets | Add-Member -MemberType NoteProperty -Name objects  -Value $SourceNetObj }
+ if ($SourceNetLit) { $sNets | Add-Member -MemberType NoteProperty -Name literals -Value $SourceNetLit }
+ }
+ if ($DestinationNetworks) {
+$literals     = @()
+$objects      = @()
+$DestinationNetObj = @()
+$DestinationNetLit = @()
+$DestinationNetworks_split = $DestinationNetworks -split ','
+$DestinationNetworks_split | foreach {
+                     if ($_ -match '(^\d+\.\d+\.\d+\.\d+$|^\d+\.\d+\.\d+\.\d+\/\d\d$|^\d+\.\d+\.\d+\.\d+\-\d+\.\d+\.\d+\.\d+$)') {
+                        $literals += $_} else {$objects += $_}}
+ if ($objects) { $objects | foreach {
+            $i = $AllNetObjects | Where-Object -Property name -EQ $_
+            $Obj = New-Object psobject
+            $Obj | Add-Member -MemberType NoteProperty -Name type -Value $i.type
+            $Obj | Add-Member -MemberType NoteProperty -Name name -Value $i.name
+            $Obj | Add-Member -MemberType NoteProperty -Name id   -Value $i.id
+            $DestinationNetObj += $Obj
+            }}
+ if ($literals) { $literals | foreach {
+            $Obj = New-Object psobject
+            $Obj | Add-Member -MemberType NoteProperty -Name value -Value "$_"
+            $DestinationNetLit += $Obj
+                              }
+
+                }
+ $dNets = New-Object psobject 
+ if ($DestinationNetObj) { $dNets | Add-Member -MemberType NoteProperty -Name objects  -Value $DestinationNetObj }
+ if ($DestinationNetLit) { $dNets | Add-Member -MemberType NoteProperty -Name literals -Value $DestinationNetLit }
+ }
+
+}
+## /Parsing Source or destination networks
+
+## Parsing Source or destination ports
+if ($SourcePorts -or $DestinationPorts) {
+ if ($SourcePorts) {
+$literals     = @()
+$objects      = @()
+$SourcePortObj = @()
+$SourcePortLit = @()
+$SourcePorts_split = $SourcePorts -split ','
+$SourcePorts_split | foreach {
+                     if ($_ -match '(^\w+?\/\d+$|^\w+?\/\d+\-\d+$)') {
+                        $literals += $_} else {$objects += $_}}
+ if ($objects) { $objects | foreach {
+            $i = $AllPortObjects | Where-Object -Property name -EQ $_
+            $Obj = New-Object psobject
+            $Obj | Add-Member -MemberType NoteProperty -Name type -Value $i.type
+            $Obj | Add-Member -MemberType NoteProperty -Name name -Value $i.name
+            $Obj | Add-Member -MemberType NoteProperty -Name id   -Value $i.id
+            $SourcePortObj += $Obj
+            }}
+ if ($literals) { $literals | foreach {
+            $i = $_ -split '\/'
+            $i[0] = $i[0] -replace 'tcp','6'
+            $i[0] = $i[0] -replace 'udp','17'
+            $Obj = New-Object psobject
+            $Obj | Add-Member -MemberType NoteProperty -Name type     -Value PortLiteral
+            $Obj | Add-Member -MemberType NoteProperty -Name port     -Value $i[1]
+            $Obj | Add-Member -MemberType NoteProperty -Name protocol -Value $i[0]
+            $SourcePortLit += $Obj
+                              }
+ $sPorts = New-Object psobject 
+ if ($SourcePortObj) { $sPorts | Add-Member -MemberType NoteProperty -Name objects  -Value $SourcePortObj }
+ if ($SourcePortLit) { $sPorts | Add-Member -MemberType NoteProperty -Name literals -Value $SourcePortLit }
+                }
+ }
+ if ($DestinationPorts) {
+$literals     = @()
+$objects      = @()
+$DestinationPortObj = @()
+$DestinationPortLit = @()
+$DestinationPorts_split = $DestinationPorts -split ','
+$DestinationPorts_split | foreach {
+                     if ($_ -match '(^\w+?\/\d+$|^\w+?\/\d+\-\d+$)') {
+                        $literals += $_} else {$objects += $_}}
+ if ($objects) { $objects | foreach {
+            $i = $AllPortObjects | Where-Object -Property name -EQ $_
+            $Obj = New-Object psobject
+            $Obj | Add-Member -MemberType NoteProperty -Name type -Value $i.type
+            $Obj | Add-Member -MemberType NoteProperty -Name name -Value $i.name
+            $Obj | Add-Member -MemberType NoteProperty -Name id   -Value $i.id
+            $DestinationPortObj += $Obj
+            }}
+ if ($literals) { $literals | foreach {
+            $i = $_ -split '\/'
+            $i[0] = $i[0] -replace 'tcp','6'
+            $i[0] = $i[0] -replace 'udp','17'
+            $Obj = New-Object psobject
+            $Obj | Add-Member -MemberType NoteProperty -Name type     -Value PortLiteral
+            $Obj | Add-Member -MemberType NoteProperty -Name port     -Value $i[1]
+            $Obj | Add-Member -MemberType NoteProperty -Name protocol -Value $i[0]
+            $DestinationPortLit += $Obj
+                              }
+
+                }
+ $dPorts = New-Object psobject 
+ if ($DestinationPortObj) { $dPorts | Add-Member -MemberType NoteProperty -Name objects  -Value $DestinationPortObj }
+ if ($DestinationPortLit) { $dPorts | Add-Member -MemberType NoteProperty -Name literals -Value $DestinationPortLit }
+ }
+
+
+}
+## /Parsing Source or destination ports
+
+
+if ($IntrusionPolicy) {
+$ipsPolicyID = Get-FMCIntrusionPolicies -Name $IntrusionPolicy -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$ipsPolicy = New-Object -TypeName psobject
+$ipsPolicy | Add-Member -MemberType NoteProperty -name name -Value $ipsPolicyID.name
+$ipsPolicy | Add-Member -MemberType NoteProperty -name id   -Value $ipsPolicyID.id
+$ipsPolicy | Add-Member -MemberType NoteProperty -name type -Value $ipsPolicyID.type
+}
+
+$body = New-Object -TypeName psobject
+$body | Add-Member -MemberType NoteProperty -name type            -Value 'AccessRule'
+$body | Add-Member -MemberType NoteProperty -name enabled         -Value $Enabled
+$body | Add-Member -MemberType NoteProperty -name name            -Value "$Name"
+$body | Add-Member -MemberType NoteProperty -name action          -Value "$Action"
+if ($ipsPolicy) { $body | Add-Member -MemberType NoteProperty -name ipsPolicy            -Value "$ipsPolicy" }
+if ($sZones)    { $body | Add-Member -MemberType NoteProperty -name sourceZones          -Value $sZones }
+if ($dZones)    { $body | Add-Member -MemberType NoteProperty -name destinationZones     -Value $dZones }
+if ($sNets)     { $body | Add-Member -MemberType NoteProperty -name sourceNetworks       -Value $sNets }
+if ($dNets)     { $body | Add-Member -MemberType NoteProperty -name destinationNetworks  -Value $dNets }
+if ($sPorts)    { $body | Add-Member -MemberType NoteProperty -name sourcePorts          -Value $sPorts }
+if ($dPorts)    { $body | Add-Member -MemberType NoteProperty -name destinationPorts     -Value $dPorts }
+$body | Add-Member -MemberType NoteProperty -name logBegin        -Value $logBegin
+$body | Add-Member -MemberType NoteProperty -name logEnd          -Value $logEnd
+$body | Add-Member -MemberType NoteProperty -name sendEventsToFMC -Value $SendEventsToFMC
+$response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json -Depth 5)
+        }
+End     {
+#($body | ConvertTo-Json -Depth 5)
+$response
+#$debug
         }
 }
