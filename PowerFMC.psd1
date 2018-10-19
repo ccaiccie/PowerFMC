@@ -80,7 +80,11 @@ FunctionsToExport =
     "Remove-FMCObject",
     "Get-FMCPortObject",
     "New-FMCPortObject",
-    "New-FMCPortGroup"
+    "New-FMCPortGroup",
+    "Get-FMCPortGroups",
+    "Get-FMCAccessPolicies",
+    "New-FMCAccessPolicy",
+    "Get-FMCIntrusionPolicies"
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = '*'
