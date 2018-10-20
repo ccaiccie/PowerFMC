@@ -1,5 +1,11 @@
 # PowerFMC
 PowerShell module for Cisco Firepower Management Center (FMC)
+
+USE AT YOUR OWN RISK! 
+This module is still under development and any feature may or may not work as intended.
+Please only use in lab/development environments unless you have a strong understanding of PowerShell and the REST API
+I am not responsible for any damages or downtime caused by the use of these modules.
+
 The functions in this module invoke REST calls to the FMC API enabling the bulk creation and management of objects and policies.
 
 To use this module, create a folder called 'PowerFMC' in one of the PowerShell module paths listed 
