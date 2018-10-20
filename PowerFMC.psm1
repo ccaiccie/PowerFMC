@@ -1029,10 +1029,10 @@ function New-FMCAccessPolicyRule {
             [bool]$LogBegin=$false,
 
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [bool]$LogEnd=$true,
+            [bool]$LogEnd=$false,
 
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [bool]$SendEventsToFMC=$true,
+            [bool]$SendEventsToFMC=$false,
 
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$FMCHost,
@@ -1044,6 +1044,7 @@ function New-FMCAccessPolicyRule {
             [string]$Domain
     )
 Begin   {
+$BeginTime = Get-Date
 add-type @"
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
@@ -1253,7 +1254,7 @@ $body | Add-Member -MemberType NoteProperty -name type            -Value 'Access
 $body | Add-Member -MemberType NoteProperty -name enabled         -Value $Enabled
 $body | Add-Member -MemberType NoteProperty -name name            -Value "$Name"
 $body | Add-Member -MemberType NoteProperty -name action          -Value "$Action"
-if ($ipsPolicy) { $body | Add-Member -MemberType NoteProperty -name ipsPolicy            -Value "$ipsPolicy" }
+if ($ipsPolicy) { $body | Add-Member -MemberType NoteProperty -name ipsPolicy            -Value $ipsPolicy }
 if ($sZones)    { $body | Add-Member -MemberType NoteProperty -name sourceZones          -Value $sZones }
 if ($dZones)    { $body | Add-Member -MemberType NoteProperty -name destinationZones     -Value $dZones }
 if ($sNets)     { $body | Add-Member -MemberType NoteProperty -name sourceNetworks       -Value $sNets }
@@ -1263,11 +1264,13 @@ if ($dPorts)    { $body | Add-Member -MemberType NoteProperty -name destinationP
 $body | Add-Member -MemberType NoteProperty -name logBegin        -Value $logBegin
 $body | Add-Member -MemberType NoteProperty -name logEnd          -Value $logEnd
 $body | Add-Member -MemberType NoteProperty -name sendEventsToFMC -Value $SendEventsToFMC
-$response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json -Depth 5)
+Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json -Depth 5)
         }
 End     {
+$EndTime = Get-Date
+(New-TimeSpan -Start $BeginTime -End $EndTime).TotalMinutes
 #($body | ConvertTo-Json -Depth 5)
-$response
+#$response
 #$debug
         }
 }
