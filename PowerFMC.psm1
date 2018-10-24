@@ -1903,13 +1903,5 @@ if ($LogEnd)          { $body | Add-Member -MemberType NoteProperty -name logEnd
 if ($SendEventsToFMC) { $body | Add-Member -MemberType NoteProperty -name sendEventsToFMC      -Value $SendEventsToFMC }
 Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json -Depth 5)
         }
-End     {
-$EndTime = Get-Date
-#$uri
-#($body | ConvertTo-Json -Depth 5)
-#(New-TimeSpan -Start $BeginTime -End $EndTime).TotalMinutes
-#($body | ConvertTo-Json -Depth 5)
-#$response
-#$debug
-        }
+End     {}
 }
