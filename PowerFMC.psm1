@@ -17,11 +17,11 @@ REST account password
     param
     (
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
+            [string]$FMCHost='https://fmcrestapisandbox.cisco.com',
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$username,
+            [string]$username='davdecke',
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$password
+            [string]$password='R3tQLQ62'
     )
 Begin {
 add-type @"
@@ -1563,10 +1563,9 @@ End {$uri}
 function Update-FMCAccessPolicyRule {
         <#
  .SYNOPSIS
-Creates a new acccess policy rule
+Updates existing acccess policy rules
  .DESCRIPTION
-Invokes a REST post method to post new rules into an access policy.
-Allow for bulk rule import via pipeline. 
+Invokes a REST put method to update new rules in access policies
  .EXAMPLE
 $x = $a | Get-FMCAccessPolicyRule -AccessPolicy TST1111 -RuleName BulkTest* 
 $x | Update-FMCAccessPolicyRule -AuthAccessToken $a.AuthAccessToken -Domain $a.Domain -FMCHost $a.fmcHost -IntrusionPolicy IntPO2 -FilePolicy Malware-Detect
@@ -1576,10 +1575,6 @@ Base URL of FMC
 X-auth-accesss-token 
  .PARAMETER Domain
 Domain UUID 
- .PARAMETER Name
-Rule Name
- .PARAMETER AccessPolicy
-Access policy rule will belong to
  .PARAMETER Action
 Action rule will take (e.g. Allow or Block)
  .PARAMETER SourceZones
