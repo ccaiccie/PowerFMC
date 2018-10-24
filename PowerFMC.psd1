@@ -71,9 +71,9 @@ Copyright = '(c) 2018 davdecke. All rights reserved.'
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
 FunctionsToExport = 
     "New-FMCAuthToken",
-    "Get-FMCNetworkObjects",
+    "Get-FMCNetworkObject",
     "New-FMCNetworkObject",
-    "Get-FMCNetworkGroups",
+    "Get-FMCNetworkGroup",
     "New-FMCNetworkGroup",
     "Get-FMCObject",
     "New-FMCObject",
@@ -81,10 +81,14 @@ FunctionsToExport =
     "Get-FMCPortObject",
     "New-FMCPortObject",
     "New-FMCPortGroup",
-    "Get-FMCPortGroups",
-    "Get-FMCAccessPolicies",
+    "Get-FMCPortGroup",
+    "Get-FMCAccessPolicy",
     "New-FMCAccessPolicy",
-    "Get-FMCIntrusionPolicies"
+    "Get-FMCIntrusionPolicy",
+    "Get-FMCFilePolicy",
+    "Get-FMCZone",
+    "Get-FMCAccessPolicyRule",
+    "Update-FMCAccessPolicyRule"
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = '*'
