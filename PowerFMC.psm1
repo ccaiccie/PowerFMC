@@ -1568,7 +1568,8 @@ Creates a new acccess policy rule
 Invokes a REST post method to post new rules into an access policy.
 Allow for bulk rule import via pipeline. 
  .EXAMPLE
-
+$x = $a | Get-FMCAccessPolicyRule -AccessPolicy TST1111 -RuleName BulkTest* 
+$x | Update-FMCAccessPolicyRule -AuthAccessToken $a.AuthAccessToken -Domain $a.Domain -FMCHost $a.fmcHost -IntrusionPolicy IntPO2 -FilePolicy Malware-Detect
  .PARAMETER fmcHost
 Base URL of FMC
  .PARAMETER AuthAccessToken
