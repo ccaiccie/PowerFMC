@@ -16,11 +16,11 @@ REST account password
 /#>
     param
     (
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$FMCHost,
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$username,
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$password
     )
 Begin {
@@ -693,7 +693,7 @@ $dZones | Add-Member -MemberType NoteProperty -Name objects -Value $dZ
 
 ## Parsing Source or destination networks
 if ($SourceNetworks -or $DestinationNetworks) {
- if ($SourceNetworks) {
+ if ($SourceNetworks)      {
 $literals     = @()
 $objects      = @()
 $SourceNetObj = @()
@@ -712,6 +712,7 @@ $SourceNetworks_split | foreach {
             }}
  if ($literals) { $literals | foreach {
             $Obj = New-Object psobject
+            $Obj | Add-Member -MemberType NoteProperty -Name type  -Value ""
             $Obj | Add-Member -MemberType NoteProperty -Name value -Value "$_"
             $SourceNetLit += $Obj
                               }
@@ -740,6 +741,7 @@ $DestinationNetworks_split | foreach {
             }}
  if ($literals) { $literals | foreach {
             $Obj = New-Object psobject
+            $Obj | Add-Member -MemberType NoteProperty -Name type  -Value ""
             $Obj | Add-Member -MemberType NoteProperty -Name value -Value "$_"
             $DestinationNetLit += $Obj
                               }
@@ -853,8 +855,8 @@ Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | Conver
         }
 End     {
 $EndTime = Get-Date
-(New-TimeSpan -Start $BeginTime -End $EndTime).TotalMinutes
-#($body | ConvertTo-Json -Depth 5)
+#(New-TimeSpan -Start $BeginTime -End $EndTime).TotalMinutes
+($body | ConvertTo-Json -Depth 5)
 #$response
 #$debug
         }
@@ -1928,4 +1930,3 @@ Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | Convert
     }
 End     {}
 }
-
