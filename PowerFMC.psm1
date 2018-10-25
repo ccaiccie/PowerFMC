@@ -629,7 +629,6 @@ Selects the IPS policy for the rule
             [string]$Domain
     )
 Begin   {
-$BeginTime = Get-Date
 add-type @"
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
@@ -839,8 +838,8 @@ $ipsPolicy | Add-Member -MemberType NoteProperty -name type -Value $ipsPolicyID.
 $body = New-Object -TypeName psobject
 $body | Add-Member -MemberType NoteProperty -name type            -Value 'AccessRule'
 $body | Add-Member -MemberType NoteProperty -name enabled         -Value $Enabled
-$body | Add-Member -MemberType NoteProperty -name name            -Value "$Name"
-$body | Add-Member -MemberType NoteProperty -name action          -Value "$Action"
+$body | Add-Member -MemberType NoteProperty -name name            -Value $RuleName
+$body | Add-Member -MemberType NoteProperty -name action          -Value $Action
 if ($ipsPolicy) { $body | Add-Member -MemberType NoteProperty -name ipsPolicy            -Value $ipsPolicy }
 if ($sZones)    { $body | Add-Member -MemberType NoteProperty -name sourceZones          -Value $sZones }
 if ($dZones)    { $body | Add-Member -MemberType NoteProperty -name destinationZones     -Value $dZones }
@@ -853,13 +852,7 @@ $body | Add-Member -MemberType NoteProperty -name logEnd          -Value $logEnd
 $body | Add-Member -MemberType NoteProperty -name sendEventsToFMC -Value $SendEventsToFMC
 Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json -Depth 5)
         }
-End     {
-$EndTime = Get-Date
-#(New-TimeSpan -Start $BeginTime -End $EndTime).TotalMinutes
-($body | ConvertTo-Json -Depth 5)
-#$response
-#$debug
-        }
+End     {}
 }
 function Get-FMCObject {
     <#
