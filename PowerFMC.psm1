@@ -1646,13 +1646,13 @@ Selects the IPS policy for the rule
             [string]$Comments,
 
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
+            [string]$FMCHost='https://fmcrestapisandbox.cisco.com',
 
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
+            [string]$AuthAccessToken="$a.AuthAccessToken",
 
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
+           [string]$Domain="$a.Domain",
 
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
             $InputObject
@@ -1680,7 +1680,7 @@ if ($SourceNetworks -or $DestinationNetworks) {
        $AllNetObjects   = Get-FMCNetworkObject -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
        $AllNetObjects  += Get-FMCNetworkGroup  -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
        }
-if ($SourcePorts -or $DestinationPorts) {
+if ($SourcePorts    -or $DestinationPorts)    {
        $AllPortObjects  = @()
        $AllPortObjects  = Get-FMCPortObject -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
        $AllPortObjects += Get-FMCPortGroup  -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
@@ -1691,10 +1691,23 @@ $ruleUUID   = $InputObject.id
 $policyUUID = $InputObject.metadata.accessPolicy.id
 $uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/policy/accesspolicies/$policyUUID/accessrules/$ruleUUID"
 $headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
-## Parsing Source or destination Security Zones
 
-if ($SourceZones -or $DestinationZones) {
- if ($SourceZones)      {
+if (!$Enabled)                 {$Enabled                 = $InputObject.enabled}
+if (!$Action)                  {$Action                  = $InputObject.action}
+if (!$urls)                    {$urls                    = $InputObject.urls}
+if (!$vlanTags)                {$vlanTags                = $InputObject.vlanTags}
+if (!$logBegin)                {$logBegin                = $InputObject.logBegin} 
+if (!$logEnd)                  {$logEnd                  = $InputObject.logEnd}
+if (!$syslogConfig)            {$syslogConfig            = $InputObject.syslogConfig}
+if (!$snmpConfig)              {$snmpConfig              = $InputObject.snmpConfig}
+if (!$variableSet)             {$variableSet             = $InputObject.variableSet}
+if (!$logFiles)                {$logFiles                = $InputObject.logFiles}
+if (!$applications)            {$applications            = $InputObject.applications}
+if (!$sourceSecurityGroupTags) {$sourceSecurityGroupTags = $InputObject.sourceSecurityGroupTags}
+if (!$sendEventsToFMC)         {$sendEventsToFMC         = $InputObject.sendEventsToFMC}
+
+## Parsing Source or destination Security Zones
+ if ($SourceZones)         {
  $SourceZones_split = $SourceZones -split ','
  $sZ = @()
  $SourceZones_split | foreach {
@@ -1706,13 +1719,14 @@ if ($SourceZones -or $DestinationZones) {
                $Zone | Add-Member -MemberType NoteProperty -Name type -Value $i.type
                $sZ += $Zone
                }
+if ($InputObject.sourceZones.objects){$sZ += $InputObject.sourceZones.objects}
 $sZones = New-Object psobject
 $sZones | Add-Member -MemberType NoteProperty -Name objects -Value $sZ
- }
- if ($DestinationZones) {
-$DestinationZones_split = $DestinationZones -split ','
-$dZ = @()
-$DestinationZones_split | foreach {
+ } else {$sZones = $InputObject.sourceZones}
+ if ($DestinationZones)    {
+ $DestinationZones_split = $DestinationZones -split ','
+ $dZ = @()
+ $DestinationZones_split | foreach {
                $i = @()
                $i = $AllZones | Where-Object -Property name -EQ $_
                $Zone = New-Object psobject
@@ -1721,15 +1735,14 @@ $DestinationZones_split | foreach {
                $Zone | Add-Member -MemberType NoteProperty -Name type -Value $i.type
                $dZ += $Zone
                }
+if ($InputObject.destinationZones.objects){$dZ += $InputObject.destinationZones.objects}
 $dZones = New-Object psobject
 $dZones | Add-Member -MemberType NoteProperty -Name objects -Value $dZ
- }
-}
+ } else {$dZones = $InputObject.destinationZones}
 ## /Parsing Source or destination Security Zones
 
 ## Parsing Source or destination networks
-if ($SourceNetworks -or $DestinationNetworks) {
- if ($SourceNetworks) {
+ if ($SourceNetworks)      {
 $literals     = @()
 $objects      = @()
 $SourceNetObj = @()
@@ -1745,18 +1758,22 @@ $SourceNetworks_split | foreach {
             $Obj | Add-Member -MemberType NoteProperty -Name name -Value $i.name
             $Obj | Add-Member -MemberType NoteProperty -Name id   -Value $i.id
             $SourceNetObj += $Obj
+            if ($InputObject.sourceNetworks.objects){$SourceNetObj += $InputObject.sourceNetworks.objects}
+
             }}
  if ($literals) { $literals | foreach {
             $Obj = New-Object psobject
             $Obj | Add-Member -MemberType NoteProperty -Name value -Value "$_"
             $SourceNetLit += $Obj
+            $SourceNetLit += $InputObject.sourceNetworks.literals
+
                               }
 
                 }
  $sNets = New-Object psobject 
  if ($SourceNetObj) { $sNets | Add-Member -MemberType NoteProperty -Name objects  -Value $SourceNetObj }
  if ($SourceNetLit) { $sNets | Add-Member -MemberType NoteProperty -Name literals -Value $SourceNetLit }
- }
+ } else {$sNets = $InputObject.SourceNetworks}
  if ($DestinationNetworks) {
 $literals     = @()
 $objects      = @()
@@ -1773,25 +1790,24 @@ $DestinationNetworks_split | foreach {
             $Obj | Add-Member -MemberType NoteProperty -Name name -Value $i.name
             $Obj | Add-Member -MemberType NoteProperty -Name id   -Value $i.id
             $DestinationNetObj += $Obj
+            $DestinationNetObj += $InputObject.destinationNetworks.objects
             }}
  if ($literals) { $literals | foreach {
             $Obj = New-Object psobject
             $Obj | Add-Member -MemberType NoteProperty -Name value -Value "$_"
             $DestinationNetLit += $Obj
+            if ($InputObject.destinationNetworks.literals){$DestinationNetLit += $InputObject.destinationNetworks.literals}
                               }
 
                 }
  $dNets = New-Object psobject 
  if ($DestinationNetObj) { $dNets | Add-Member -MemberType NoteProperty -Name objects  -Value $DestinationNetObj }
  if ($DestinationNetLit) { $dNets | Add-Member -MemberType NoteProperty -Name literals -Value $DestinationNetLit }
- }
-
-}
+ } else {$dNets = $InputObject.DestinationNetworks}
 ## /Parsing Source or destination networks
 
 ## Parsing Source or destination ports
-if ($SourcePorts -or $DestinationPorts) {
- if ($SourcePorts) {
+ if ($SourcePorts)         {
 $literals     = @()
 $objects      = @()
 $SourcePortObj = @()
@@ -1807,6 +1823,7 @@ $SourcePorts_split | foreach {
             $Obj | Add-Member -MemberType NoteProperty -Name name -Value $i.name
             $Obj | Add-Member -MemberType NoteProperty -Name id   -Value $i.id
             $SourcePortObj += $Obj
+            if ($InputObject.sourcePorts.objects){$SourcePortObj += $InputObject.sourcePorts.objects}
             }}
  if ($literals) { $literals | foreach {
             $i = $_ -split '\/'
@@ -1817,13 +1834,14 @@ $SourcePorts_split | foreach {
             $Obj | Add-Member -MemberType NoteProperty -Name port     -Value $i[1]
             $Obj | Add-Member -MemberType NoteProperty -Name protocol -Value $i[0]
             $SourcePortLit += $Obj
+            if ($InputObject.sourcePorts.literals){$SourcePortLit += $InputObject.sourcePorts.literals}
                               }
  $sPorts = New-Object psobject 
  if ($SourcePortObj) { $sPorts | Add-Member -MemberType NoteProperty -Name objects  -Value $SourcePortObj }
  if ($SourcePortLit) { $sPorts | Add-Member -MemberType NoteProperty -Name literals -Value $SourcePortLit }
                 }
- }
- if ($DestinationPorts) {
+ } else {$sPorts = $InputObject.SourcePorts}
+ if ($DestinationPorts)    {
 $literals     = @()
 $objects      = @()
 $DestinationPortObj = @()
@@ -1839,6 +1857,7 @@ $DestinationPorts_split | foreach {
             $Obj | Add-Member -MemberType NoteProperty -Name name -Value $i.name
             $Obj | Add-Member -MemberType NoteProperty -Name id   -Value $i.id
             $DestinationPortObj += $Obj
+            if ($InputObject.destinationPorts.objects){$DestinationPortObj += $InputObject.destinationPorts.objects}
             }}
  if ($literals) { $literals | foreach {
             $i = $_ -split '\/'
@@ -1849,59 +1868,67 @@ $DestinationPorts_split | foreach {
             $Obj | Add-Member -MemberType NoteProperty -Name port     -Value $i[1]
             $Obj | Add-Member -MemberType NoteProperty -Name protocol -Value $i[0]
             $DestinationPortLit += $Obj
+            if ($InputObject.destinationPorts.literals){$DestinationPortLit += $InputObject.destinationPorts.literals}
                               }
 
                 }
  $dPorts = New-Object psobject 
  if ($DestinationPortObj) { $dPorts | Add-Member -MemberType NoteProperty -Name objects  -Value $DestinationPortObj }
  if ($DestinationPortLit) { $dPorts | Add-Member -MemberType NoteProperty -Name literals -Value $DestinationPortLit }
- }
-
-
-}
+ } else {$dPorts = $InputObject.DestinationPorts}
 ## /Parsing Source or destination ports
 
-if (!$Enabled) {$Enabled = $InputObject.enabled}
-if (!$Action)  {$Action = $InputObject.action}
 if ($IntrusionPolicy) {
 $ipsPolicyID = Get-FMCIntrusionPolicy -Name $IntrusionPolicy -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
-$ipsPolicy = New-Object -TypeName psobject
-$ipsPolicy | Add-Member -MemberType NoteProperty -name name -Value $ipsPolicyID.name
-$ipsPolicy | Add-Member -MemberType NoteProperty -name id   -Value $ipsPolicyID.id
-$ipsPolicy | Add-Member -MemberType NoteProperty -name type -Value $ipsPolicyID.type
-}
+$ipsPolicy   = New-Object -TypeName psobject
+$ipsPolicy   | Add-Member -MemberType NoteProperty -name name -Value $ipsPolicyID.name
+$ipsPolicy   | Add-Member -MemberType NoteProperty -name id   -Value $ipsPolicyID.id
+$ipsPolicy   | Add-Member -MemberType NoteProperty -name type -Value $ipsPolicyID.type
+} else { $ipsPolicy = $InputObject.ipsPolicy}
 
 if ($FilePolicy) {
 $fPolicyID = Get-FMCFilePolicy -Name $FilePolicy -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
-$fPolicy = New-Object -TypeName psobject
-$fPolicy | Add-Member -MemberType NoteProperty -name name -Value $fPolicyID.name
-$fPolicy | Add-Member -MemberType NoteProperty -name id   -Value $fPolicyID.id
-$fPolicy | Add-Member -MemberType NoteProperty -name type -Value $fPolicyID.type
-}
+$fPolicy   = New-Object -TypeName psobject
+$fPolicy   | Add-Member -MemberType NoteProperty -name name -Value $fPolicyID.name
+$fPolicy   | Add-Member -MemberType NoteProperty -name id   -Value $fPolicyID.id
+$fPolicy   | Add-Member -MemberType NoteProperty -name type -Value $fPolicyID.type
+} else { $fPolicy = $InputObject.filePolicy}
 
 if ($Comments) {
  $newComments = New-Object -TypeName psobject
- $newComments | Add-Member -MemberType NoteProperty -Name comment1 -Value $Comments
- }
+ $newComments | Add-Member -MemberType NoteProperty -Name comment -Value $Comments
+ } 
 
 $body = New-Object -TypeName psobject
-$body | Add-Member -MemberType NoteProperty -name enabled         -Value $Enabled
-$body | Add-Member -MemberType NoteProperty -name name            -Value $InputObject.Name
-$body | Add-Member -MemberType NoteProperty -name id              -Value $ruleUUID
-$body | Add-Member -MemberType NoteProperty -name action          -Value $Action
-if ($ipsPolicy)       { $body | Add-Member -MemberType NoteProperty -name ipsPolicy            -Value $ipsPolicy }
-if ($fPolicy)         { $body | Add-Member -MemberType NoteProperty -name filePolicy           -Value $fPolicy }
-if ($sZones)          { $body | Add-Member -MemberType NoteProperty -name sourceZones          -Value $sZones }
-if ($dZones)          { $body | Add-Member -MemberType NoteProperty -name destinationZones     -Value $dZones }
-if ($sNets)           { $body | Add-Member -MemberType NoteProperty -name sourceNetworks       -Value $sNets }
-if ($dNets)           { $body | Add-Member -MemberType NoteProperty -name destinationNetworks  -Value $dNets }
-if ($sPorts)          { $body | Add-Member -MemberType NoteProperty -name sourcePorts          -Value $sPorts }
-if ($dPorts)          { $body | Add-Member -MemberType NoteProperty -name destinationPorts     -Value $dPorts }
-if ($Comments)        { $body | Add-Member -MemberType NoteProperty -name newComments          -Value $newComments }
-if ($logBegin)        { $body | Add-Member -MemberType NoteProperty -name logBegin             -Value $logBegin }
-if ($LogEnd)          { $body | Add-Member -MemberType NoteProperty -name logEnd               -Value $logEnd }
-if ($SendEventsToFMC) { $body | Add-Member -MemberType NoteProperty -name sendEventsToFMC      -Value $SendEventsToFMC }
+$body | Add-Member -MemberType NoteProperty -name name                            -Value $InputObject.Name
+if ($Enabled)                 {$body | Add-Member -MemberType NoteProperty -name enabled                 -Value $Enabled}
+if ($ruleUUID)                {$body | Add-Member -MemberType NoteProperty -name id                      -Value $ruleUUID}
+if ($Action)                  {$body | Add-Member -MemberType NoteProperty -name action                  -Value $Action}
+if ($urls)                    {$body | Add-Member -MemberType NoteProperty -name urls                    -Value $urls}
+if ($vlanTags)                {$body | Add-Member -MemberType NoteProperty -name vlanTags                -Value $vlanTags}
+if ($ipsPolicy)               {$body | Add-Member -MemberType NoteProperty -name ipsPolicy               -Value $ipsPolicy }
+if ($fPolicy)                 {$body | Add-Member -MemberType NoteProperty -name filePolicy              -Value $fPolicy }
+if ($sZones)                  {$body | Add-Member -MemberType NoteProperty -name sourceZones             -Value $sZones }
+if ($dZones)                  {$body | Add-Member -MemberType NoteProperty -name destinationZones        -Value $dZones }
+if ($sNets)                   {$body | Add-Member -MemberType NoteProperty -name sourceNetworks          -Value $sNets }
+if ($dNets)                   {$body | Add-Member -MemberType NoteProperty -name destinationNetworks     -Value $dNets }
+if ($sPorts)                  {$body | Add-Member -MemberType NoteProperty -name sourcePorts             -Value $sPorts }
+if ($dPorts)                  {$body | Add-Member -MemberType NoteProperty -name destinationPorts        -Value $dPorts }
+#if ($newComments)             {$body | Add-Member -MemberType NoteProperty -name newComments             -Value $newComments }
+if ($logBegin)                {$body | Add-Member -MemberType NoteProperty -name logBegin                -Value $logBegin }
+if ($logEnd)                  {$body | Add-Member -MemberType NoteProperty -name logEnd                  -Value $logEnd }
+if ($syslogConfig)            {$body | Add-Member -MemberType NoteProperty -name syslogConfig            -Value $syslogConfig}
+if ($snmpConfig)              {$body | Add-Member -MemberType NoteProperty -name snmpConfig              -Value $snmpConfig}
+if ($variableSet)             {$body | Add-Member -MemberType NoteProperty -name variableSet             -Value $variableSet}
+if ($logFiles)                {$body | Add-Member -MemberType NoteProperty -name logFiles                -Value $logFiles}
+if ($applications)            {$body | Add-Member -MemberType NoteProperty -name applications            -Value $applications}
+if ($sourceSecurityGroupTags) {$body | Add-Member -MemberType NoteProperty -name sourceSecurityGroupTags -Value $sourceSecurityGroupTags }
+if ($sendEventsToFMC)         {$body | Add-Member -MemberType NoteProperty -name sendEventsToFMC         -Value $sendEventsToFMC }
 Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json -Depth 5)
+($body | ConvertTo-Json -Depth 5)
+
+ $debug
         }
 End     {}
 }
+
