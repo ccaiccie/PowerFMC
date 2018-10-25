@@ -1646,13 +1646,13 @@ Selects the IPS policy for the rule
             [string]$Comments,
 
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost='https://fmcrestapisandbox.cisco.com',
+            [string]$FMCHost,
 
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken="$a.AuthAccessToken",
+            [string]$AuthAccessToken,
 
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-           [string]$Domain="$a.Domain",
+           [string]$Domain,
 
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
             $InputObject
@@ -1925,10 +1925,7 @@ if ($applications)            {$body | Add-Member -MemberType NoteProperty -name
 if ($sourceSecurityGroupTags) {$body | Add-Member -MemberType NoteProperty -name sourceSecurityGroupTags -Value $sourceSecurityGroupTags }
 if ($sendEventsToFMC)         {$body | Add-Member -MemberType NoteProperty -name sendEventsToFMC         -Value $sendEventsToFMC }
 Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json -Depth 5)
-($body | ConvertTo-Json -Depth 5)
-
- $debug
-        }
+    }
 End     {}
 }
 
