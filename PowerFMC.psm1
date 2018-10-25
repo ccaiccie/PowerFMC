@@ -577,7 +577,7 @@ Selects the IPS policy for the rule
     param
     (
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Name,
+            [string]$RuleName,
 
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$AccessPolicy,
