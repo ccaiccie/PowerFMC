@@ -1923,3 +1923,109 @@ Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | Convert
     }
 End     {}
 }
+function Update-FMCNetworkGroup {
+<#
+ .SYNOPSIS
+Create network groups in FMC
+ .DESCRIPTION
+This cmdlet will invoke a REST request against the FMC API and create Network Groups
+ .EXAMPLE
+$a | New-FMCNetworkGroup -Members 'PowerFMC_Host,PowerFMC_Net,PowerFMC_Range' -Name 'PowerFMC_Group' -Description 'Group made with PowerFMC'
+ .PARAMETER fmcHost
+Base URL of FMC
+ .PARAMETER AuthAccessToken
+X-auth-accesss-token 
+ .PARAMETER Domain
+Domain UUID 
+ .PARAMETER name
+Name of the rule. Illegal characters (/,\,whitespaces) are automatically replaced with underscrores 
+ .PARAMETER Members
+Member objects or literal networks/hosts/ranges
+/#>
+    param
+    (
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$GroupName,
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+            [string]$Members,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Description,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Overridable,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [switch]$Replace="false",
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthAccessToken
+    )
+Begin {
+add-type @"
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertsPolicy : ICertificatePolicy {
+        public bool CheckValidationResult(
+            ServicePoint srvPoint, X509Certificate certificate,
+            WebRequest request, int certificateProblem) {
+            return true;
+        }
+    }
+"@
+[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+[System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+$inputGroup = Get-FMCNetworkGroup -Name $GroupName -FMCHost $FMCHost -Domain $Domain -AuthAccessToken $AuthAccessToken
+$GroupID    = $inputGroup.id
+$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
+$uri = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups/$GroupID"
+        }
+Process {
+
+$literals = @()
+$objects  = @()
+$MemberArray = $Members -split ','
+$MemberArray | foreach {
+             if ($_ -match '(^\d+\.\d+\.\d+\.\d+$|^\d+\.\d+\.\d+\.\d+\/\d\d$|^\d+\.\d+\.\d+\.\d+\-\d+\.\d+\.\d+\.\d+$)') {
+                        $literals += $_} else {$objects += $_}}
+if ($objects) {
+$NetworkObjects = Get-FMCNetworkObject -fmcHost $FMCHost -AuthAccessToken $AuthAccessToken -Domain $Domain -Terse
+$Debug = $objects
+$NetObj = @()
+    $objects | foreach {
+    $id = $NetworkObjects | Where-Object -Property name -EQ $_
+    $id = $id.id
+    $obj = New-Object psobject
+    $obj | Add-Member -MemberType NoteProperty -Name id -Value $id
+    $NetObj += $obj
+    }
+}
+if ($literals) {
+$NetLit = @()
+    $literals | foreach {
+    $obj = New-Object psobject
+    $obj | Add-Member -MemberType NoteProperty -Name type  -Value 'Range'
+    $obj | Add-Member -MemberType NoteProperty -Name value -Value $_
+    $NetLit += $obj
+    }
+}
+
+ }
+End {
+if ($Replace -eq 'false') {
+ if ($inputGroup.objects)  { $NetObj += $inputGroup.objects }
+ if ($inputGroup.literals) { $NetLit += $inputGroup.literals }
+ if (!$Description) { if ($inputGroup.description) {$Description = $inputGroup.description}}
+ if (!$Overridable) { if ($inputGroup.overridable) {$Overridable = $inputGroup.overridable}}
+ } 
+$body = New-Object -TypeName psobject
+$body | Add-Member -MemberType NoteProperty -name type        -Value "NetworkGroup"
+if ($objects)     {$body | Add-Member -MemberType NoteProperty -name objects  -Value $NetObj}
+if ($literals)    {$body | Add-Member -MemberType NoteProperty -name literals -Value $NetLit}
+if ($Overridable) {$body | Add-Member -MemberType NoteProperty -name overridable -Value $Overridable}
+if ($Description) {$body | Add-Member -MemberType NoteProperty -name description -Value $Description}
+$body | Add-Member -MemberType NoteProperty -name id           -Value $GroupID
+$body | Add-Member -MemberType NoteProperty -name name         -Value $GroupName
+Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
+ }
+}
