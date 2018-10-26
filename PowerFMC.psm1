@@ -1,4 +1,4 @@
-function New-FMCAuthToken {
+function New-FMCAuthToken           {
 <#
  .SYNOPSIS
 Obtains Domain UUID and X-auth-access-token
@@ -17,11 +17,11 @@ REST account password
     param
     (
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
+            [string]$FMCHost='https://fmcrestapisandbox.cisco.com',
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$username,
+            [string]$username='davdecke',
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$password
+            [string]$password='R3tQLQ62'
     )
 Begin {
 add-type @"
@@ -55,7 +55,7 @@ $output | Add-Member -MemberType NoteProperty -Name AuthAccessToken -Value $Auth
 $output
     }
 }
-function New-FMCObject {
+function New-FMCObject              {
 <#
  .SYNOPSIS
 Post a new object to the REST API
@@ -103,7 +103,7 @@ End     {
 $response
         }
 }
-function New-FMCNetworkObject {
+function New-FMCNetworkObject       {
 <#
  .SYNOPSIS
 Create network objects in FMC
@@ -172,7 +172,7 @@ Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | Conver
         }
 End {}
 }
-function New-FMCNetworkGroup {
+function New-FMCNetworkGroup        {
 <#
  .SYNOPSIS
 Create network groups in FMC
@@ -267,7 +267,7 @@ Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | Conver
 End {
 }
 }
-function New-FMCPortObject {
+function New-FMCPortObject          {
 <#
  .SYNOPSIS
 Create Port objects in FMC
@@ -339,7 +339,7 @@ $response
         }
 End     {}
 }
-function New-FMCPortGroup {
+function New-FMCPortGroup           {
 <#
  .SYNOPSIS
 Create port groups in FMC
@@ -423,7 +423,7 @@ $response
         }
 End {}
 }
-function New-FMCAccessPolicy {
+function New-FMCAccessPolicy        {
     <#
  .SYNOPSIS
 Creates a new acccess policy
@@ -518,7 +518,7 @@ $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($b
         }
 End     {}
 }
-function New-FMCAccessPolicyRule {
+function New-FMCAccessPolicyRule    {
         <#
  .SYNOPSIS
 Creates a new acccess policy rule
@@ -854,7 +854,7 @@ Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | Conver
         }
 End     {}
 }
-function Get-FMCObject {
+function Get-FMCObject              {
     <#
  .SYNOPSIS
 Post a new object to the REST API
@@ -898,7 +898,7 @@ End     {
 $response
         }
 }
-function Get-FMCNetworkObject {
+function Get-FMCNetworkObject       {
 <#
  .SYNOPSIS
 Displays network objects in FMC
@@ -962,7 +962,7 @@ End {
 $NetObjects 
     }
 }
-function Get-FMCNetworkGroup {
+function Get-FMCNetworkGroup        {
 <#
  .SYNOPSIS
 Displays network groups in FMC
@@ -1026,7 +1026,7 @@ End {
 $NetObjects 
     }
 }
-function Get-FMCPortObject {
+function Get-FMCPortObject          {
     <#
  .SYNOPSIS
 Displays port objects in FMC
@@ -1106,7 +1106,7 @@ End {
 $PortObj 
     }
 }
-function Get-FMCPortGroup {
+function Get-FMCPortGroup           {
     <#
  .SYNOPSIS
 Displays port group objects in FMC
@@ -1173,7 +1173,7 @@ End {
 $NetObjects 
     }
 }
-function Get-FMCAccessPolicy {
+function Get-FMCAccessPolicy        {
     <#
  .SYNOPSIS
 Displays access policies in FMC
@@ -1239,7 +1239,7 @@ End     {
 $response
         }
 }
-function Get-FMCIntrusionPolicy {
+function Get-FMCIntrusionPolicy     {
     <#
  .SYNOPSIS
 Displays intrusion policies in FMC
@@ -1305,7 +1305,7 @@ End     {
 $response
         }
 }
-function Get-FMCFilePolicy {
+function Get-FMCFilePolicy          {
     <#
  .SYNOPSIS
 Displays file policies in FMC
@@ -1371,7 +1371,7 @@ End     {
 $response
         }
 }
-function Get-FMCAccessPolicyRule {
+function Get-FMCAccessPolicyRule    {
     <#
  .SYNOPSIS
 Displays rules in an access policy
@@ -1443,7 +1443,7 @@ End     {
 $response
         }
 }
-function Get-FMCZone {
+function Get-FMCZone                {
         <#
  .SYNOPSIS
 Displays zones defined in FMC
@@ -1509,7 +1509,7 @@ End     {
 $response
         }
 }
-function Remove-FMCObject {
+function Remove-FMCObject           {
         <#
  .SYNOPSIS
 Removes an object via the REST API
@@ -1923,7 +1923,7 @@ Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | Convert
     }
 End     {}
 }
-function Update-FMCNetworkGroup {
+function Update-FMCNetworkGroup     {
 <#
  .SYNOPSIS
 Create network groups in FMC
@@ -2027,5 +2027,6 @@ if ($Description) {$body | Add-Member -MemberType NoteProperty -name description
 $body | Add-Member -MemberType NoteProperty -name id           -Value $GroupID
 $body | Add-Member -MemberType NoteProperty -name name         -Value $GroupName
 Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
+($body | ConvertTo-Json)
  }
 }
