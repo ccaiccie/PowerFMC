@@ -222,14 +222,14 @@ add-type @"
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
+$literals = @()
+$objects  = @()
         }
 Process {
 $uri = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups"
 $headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
 $Name = $Name -replace '(\\|\/|\s)','_'
 
-$literals = @()
-$objects  = @()
 $MemberArray = $Members -split ','
 $MemberArray | foreach {
              if ($_ -match '(^\d+\.\d+\.\d+\.\d+$|^\d+\.\d+\.\d+\.\d+\/\d\d$|^\d+\.\d+\.\d+\.\d+\-\d+\.\d+\.\d+\.\d+$)') {
@@ -255,6 +255,8 @@ $NetLit = @()
     }
 }
 
+ }
+End {
 $body = New-Object -TypeName psobject
 $body | Add-Member -MemberType NoteProperty -name type        -Value "NetworkGroup"
 if ($objects)  {$body | Add-Member -MemberType NoteProperty -name objects  -Value $NetObj}
@@ -264,8 +266,6 @@ $body | Add-Member -MemberType NoteProperty -name description -Value $Descriptio
 $body | Add-Member -MemberType NoteProperty -name name        -Value $Name
 Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
  }
-End {
-}
 }
 function New-FMCPortObject          {
 <#
