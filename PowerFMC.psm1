@@ -1953,7 +1953,7 @@ Member objects or literal networks/hosts/ranges
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$Overridable,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [switch]$Replace="false",
+            [switch]$Replace,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$FMCHost,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
