@@ -17,11 +17,11 @@ REST account password
     param
     (
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost='https://fmcrestapisandbox.cisco.com',
+            [string]$FMCHost,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$username='davdecke',
+            [string]$username,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$password='R3tQLQ62'
+            [string]$password
     )
 Begin {
 add-type @"
