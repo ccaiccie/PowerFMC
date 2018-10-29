@@ -194,7 +194,7 @@ Member objects or literal networks/hosts/ranges
     param
     (
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Name,
+            [string]$GroupName,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$Members,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
@@ -263,7 +263,7 @@ if ($objects)  {$body | Add-Member -MemberType NoteProperty -name objects  -Valu
 if ($literals) {$body | Add-Member -MemberType NoteProperty -name literals -Value $NetLit}
 $body | Add-Member -MemberType NoteProperty -name overridable -Value $Overridable
 $body | Add-Member -MemberType NoteProperty -name description -Value $Description
-$body | Add-Member -MemberType NoteProperty -name name        -Value $Name
+$body | Add-Member -MemberType NoteProperty -name name        -Value $GroupName
 Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
  }
 }
