@@ -17,11 +17,11 @@ REST account password
     param
     (
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
+            [string]$FMCHost='https://fmcrestapisandbox.cisco.com',
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$username,
+            [string]$username='davdecke',
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$password
+            [string]$password='R3tQLQ62'
     )
 Begin {
 add-type @"
@@ -1700,6 +1700,7 @@ if (!$logFiles)                {$logFiles                = $InputObject.logFiles
 if (!$applications)            {$applications            = $InputObject.applications}
 if (!$sourceSecurityGroupTags) {$sourceSecurityGroupTags = $InputObject.sourceSecurityGroupTags}
 if (!$sendEventsToFMC)         {$sendEventsToFMC         = $InputObject.sendEventsToFMC}
+if (!$users)                   {$users                   = $InputObject.users}
 
 ## Parsing Source or destination Security Zones
  if ($SourceZones)         {
@@ -1909,6 +1910,7 @@ if ($sNets)                   {$body | Add-Member -MemberType NoteProperty -name
 if ($dNets)                   {$body | Add-Member -MemberType NoteProperty -name destinationNetworks     -Value $dNets }
 if ($sPorts)                  {$body | Add-Member -MemberType NoteProperty -name sourcePorts             -Value $sPorts }
 if ($dPorts)                  {$body | Add-Member -MemberType NoteProperty -name destinationPorts        -Value $dPorts }
+if ($users)                   {$body | Add-Member -MemberType NoteProperty -name users                   -Value $users }
 #if ($newComments)             {$body | Add-Member -MemberType NoteProperty -name newComments             -Value $newComments }
 if ($logBegin)                {$body | Add-Member -MemberType NoteProperty -name logBegin                -Value $logBegin }
 if ($logEnd)                  {$body | Add-Member -MemberType NoteProperty -name logEnd                  -Value $logEnd }
@@ -1919,7 +1921,7 @@ if ($logFiles)                {$body | Add-Member -MemberType NoteProperty -name
 if ($applications)            {$body | Add-Member -MemberType NoteProperty -name applications            -Value $applications}
 if ($sourceSecurityGroupTags) {$body | Add-Member -MemberType NoteProperty -name sourceSecurityGroupTags -Value $sourceSecurityGroupTags }
 if ($sendEventsToFMC)         {$body | Add-Member -MemberType NoteProperty -name sendEventsToFMC         -Value $sendEventsToFMC }
-Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json -Depth 5)
+Invoke-RestMethod -Method Patch -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json -Depth 5)
     }
 End     {}
 }
@@ -1981,7 +1983,6 @@ $headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'appl
 $uri = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups/$GroupID"
         }
 Process {
-
 $literals = @()
 $objects  = @()
 $MemberArray = $Members -split ','
@@ -2004,7 +2005,7 @@ if ($literals) {
 $NetLit = @()
     $literals | foreach {
     $obj = New-Object psobject
-    $obj | Add-Member -MemberType NoteProperty -Name type  -Value 'Range'
+    $obj | Add-Member -MemberType NoteProperty -Name type  -Value ''
     $obj | Add-Member -MemberType NoteProperty -Name value -Value $_
     $NetLit += $obj
     }
@@ -2012,7 +2013,7 @@ $NetLit = @()
 
  }
 End {
-if ($Replace -eq 'false') {
+ if ($Replace -eq 'false') {
  if ($inputGroup.objects)  { $NetObj += $inputGroup.objects }
  if ($inputGroup.literals) { $NetLit += $inputGroup.literals }
  if (!$Description) { if ($inputGroup.description) {$Description = $inputGroup.description}}
@@ -2027,6 +2028,5 @@ if ($Description) {$body | Add-Member -MemberType NoteProperty -name description
 $body | Add-Member -MemberType NoteProperty -name id           -Value $GroupID
 $body | Add-Member -MemberType NoteProperty -name name         -Value $GroupName
 Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
-($body | ConvertTo-Json)
  }
 }
