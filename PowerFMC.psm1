@@ -16,12 +16,12 @@ REST account password
 /#>
     param
     (
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$FMCHost='https://fmcrestapisandbox.cisco.com',
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$username='davdecke',
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$password='R3tQLQ62'
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$password='jrTmJ3kb'
     )
 Begin {
 add-type @"
@@ -45,13 +45,16 @@ $uri = "$FMCHost/api/fmc_platform/v1/auth/generatetoken"
 $headers = @{ Authorization = "Basic $encodedCredentials" }
 $AuthResponse = Invoke-WebRequest -Uri $uri -Headers $headers -Method Post
 $Domain =  $AuthResponse.Headers.Item('DOMAIN_UUID')
-$AuthAccessToken = $AuthResponse.Headers.Item('X-auth-access-token')
+$AuthToken = $AuthResponse.Headers.Item('X-auth-access-token')
         }
 End {
 $output = New-Object -TypeName psobject
-$output | Add-Member -MemberType NoteProperty -Name fmcHost         -Value $FMCHost
-$output | Add-Member -MemberType NoteProperty -Name Domain          -Value $Domain
-$output | Add-Member -MemberType NoteProperty -Name AuthAccessToken -Value $AuthAccessToken
+$output | Add-Member -MemberType NoteProperty -Name fmcHost            -Value $FMCHost
+$output | Add-Member -MemberType NoteProperty -Name Domain             -Value $Domain
+$output | Add-Member -MemberType NoteProperty -Name AuthAccessToken    -Value $AuthToken
+$env:FMCHost      = $output.FMCHost
+$env:FMCDomain    = $output.Domain
+$env:FMCAuthToken = $output.AuthAccessToken
 $output
     }
 }
@@ -63,7 +66,7 @@ Post a new object to the REST API
 This cmdlet will invoke a REST post against the FMC API containing custom data
  .EXAMPLE
 $uri = https://fmcrestapisandbox.cisco.com/api/fmc_config/v1/domain/e276abec-e0f2-11e3-8169-6d9ed49b625f/policy/accesspolicies/005056BB-0B24-0ed3-0000-399431961128/accessrules/005056BB-0B24-0ed3-0000-000268479706
-New-FMCObject -uri $uri -object ($body | ConvertTo-Json) -AuthAccessToken 637a1b3f-787b-4179-be40-e19ee2aa9e60
+New-FMCObject -uri $uri -object ($body | ConvertTo-Json) -AuthToken 637a1b3f-787b-4179-be40-e19ee2aa9e60
  .PARAMETER uri
 Resource location
  .PARAMETER object
@@ -77,8 +80,8 @@ Session Authentication Access Token
             [string]$uri,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$object,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken"
     )
 Begin   {
 add-type @"
@@ -96,7 +99,7 @@ add-type @"
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
          }
 Process {
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
+$headers = @{ "X-auth-access-token" = "$AuthToken" ;'Content-Type' = 'application/json' }
 $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $object
         }
 End     {
@@ -135,13 +138,14 @@ The network, host, or range dotted-decimal IP and CIDR notation for mask
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$Overridable="false",
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [alias("value")]
             [string]$Network,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken"
     )
 Begin {
 add-type @"
@@ -160,7 +164,7 @@ add-type @"
         }
 Process {
 $uri = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networks"
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
+$headers = @{ "X-auth-access-token" = "$AuthToken" ;'Content-Type' = 'application/json' }
 $Name = $Name -replace '(\\|\/|\s)','_'
 $body = New-Object -TypeName psobject
 $body | Add-Member -MemberType NoteProperty -name name        -Value $Name
@@ -201,12 +205,12 @@ Member objects or literal networks/hosts/ranges
             [string]$Description,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$Overridable="false",
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken"
     )
 Begin {
 add-type @"
@@ -227,7 +231,7 @@ $objects  = @()
         }
 Process {
 $uri = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups"
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
+$headers = @{ "X-auth-access-token" = "$AuthToken" ;'Content-Type' = 'application/json' }
 $Name = $Name -replace '(\\|\/|\s)','_'
 
 $MemberArray = $Members -split ','
@@ -235,7 +239,7 @@ $MemberArray | foreach {
              if ($_ -match '(^\d+\.\d+\.\d+\.\d+$|^\d+\.\d+\.\d+\.\d+\/\d\d$|^\d+\.\d+\.\d+\.\d+\-\d+\.\d+\.\d+\.\d+$)') {
                         $literals += $_} else {$objects += $_}}
 if ($objects) {
-$NetworkObjects = Get-FMCNetworkObject -fmcHost $FMCHost -AuthAccessToken $AuthAccessToken -Domain $Domain -Terse
+$NetworkObjects = Get-FMCNetworkObject -fmcHost $FMCHost -AuthToken $AuthToken -Domain $Domain -Terse
 $Debug = $objects
 $NetObj = @()
     $objects | foreach {
@@ -302,12 +306,12 @@ Port number
             [string]$Description,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$Overridable="false",
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken"
     )
 Begin   {
 add-type @"
@@ -326,7 +330,7 @@ add-type @"
         }
 Process {
 $uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects"
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
+$headers = @{ "X-auth-access-token" = "$AuthToken" ;'Content-Type' = 'application/json' }
 $Name    = $Name -replace '(\\|\/|\s)','_'
 $body    = New-Object -TypeName psobject
 $body | Add-Member -MemberType NoteProperty -name type        -Value "ProtocolPortObject"
@@ -372,12 +376,12 @@ Prefix length for network (32 for host)
             [string]$Description,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$Overridable="false",
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken"
     )
 Begin {
 add-type @"
@@ -396,11 +400,11 @@ add-type @"
         }
 Process {
 $uri = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/portobjectgroups"
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
+$headers = @{ "X-auth-access-token" = "$AuthToken" ;'Content-Type' = 'application/json' }
 $Name = $Name -replace '(\\|\/|\s)','_'
 
 $MemberArray = $Members -split ','
-$PortObjects = Get-FMCPortObject -fmcHost $FMCHost -AuthAccessToken $AuthAccessToken -Domain $Domain -Terse
+$PortObjects = Get-FMCPortObject -fmcHost $FMCHost -AuthToken $AuthToken -Domain $Domain -Terse
 $objects = @()
 $MemberArray | foreach {
             $PortObject = $PortObjects | Where-Object -Property name -EQ $_
@@ -461,12 +465,12 @@ Name of default intrusion policy
             [string]$LogEnd="true",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$SendEventsToFMC="true",
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain"
     )
 Begin   {
 add-type @"
@@ -485,8 +489,8 @@ add-type @"
          }
 Process {
 $uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/policy/accesspolicies"
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
-$IPID = Get-FMCIntrusionPolicy -Name $IntrusionPolicy -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$headers = @{ "X-auth-access-token" = "$AuthToken" ;'Content-Type' = 'application/json' }
+$IPID = Get-FMCIntrusionPolicy -Name $IntrusionPolicy -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
 $IP = New-Object -TypeName psobject
 $IP | Add-Member -MemberType NoteProperty -name id -Value $IPID.id
 $DefAct = New-Object -TypeName psobject
@@ -498,7 +502,7 @@ $DefAct | Add-Member -MemberType NoteProperty -name sendEventsToFMC -Value $Send
 
 $body = New-Object -TypeName psobject
 if ($ParentPolicy) {
-    $Parent = Get-FMCAccessPolicy -Name $ParentPolicy -AuthAccessToken $AuthAccessToken -Domain $Domain -FMCHost $FMCHost -Terse
+    $Parent = Get-FMCAccessPolicy -Name $ParentPolicy -AuthToken $AuthToken -Domain $Domain -FMCHost $FMCHost -Terse
     $ParentID = New-Object psobject
     $ParentID | Add-Member -MemberType NoteProperty -Name type -Value AccessPolicy
     $ParentID | Add-Member -MemberType NoteProperty -Name name -Value $Parent.name
@@ -539,7 +543,7 @@ DestinationNetworks : 200.1.1.2
 SourcePorts         :
 DestinationPorts    : tcp/112,udp/1002
 
-$csv | New-FMCAccessPolicyRule -AuthAccessToken $a.AuthAccessToken -Domain $a.Domain -FMCHost $a.fmcHost
+$csv | New-FMCAccessPolicyRule -AuthToken $a.AuthAccessToken -Domain $a.Domain -FMCHost $a.fmcHost
  .PARAMETER fmcHost
 Base URL of FMC
  .PARAMETER AuthAccessToken
@@ -605,28 +609,53 @@ Selects the IPS policy for the rule
             [string]$DestinationPorts,
 
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [bool]$Enabled=$true,
+              [bool]$Enabled=$true,
 
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$IntrusionPolicy,
 
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [bool]$LogBegin=$false,
+              [bool]$LogBegin=$false,
 
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [bool]$LogEnd=$false,
+              [bool]$LogEnd=$false,
 
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [bool]$SendEventsToFMC=$false,
+              [bool]$SendEventsToFMC=$false,
 
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
+       # [Parameter(ParameterSetName="SectionOnly",    Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+       # [Parameter(ParameterSetName="SectionBefore",  Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+       # [Parameter(ParameterSetName="BeforeOnly", Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [ValidateSet("Mandatory","Default")]
+            [string]$section,
 
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
+       # [Parameter(ParameterSetName="CategoryOnly",   Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+       # [Parameter(ParameterSetName="CategoryBefore", Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+       # [Parameter(ParameterSetName="BeforeOnly", Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$category,
 
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain
+       # [Parameter(ParameterSetName="SectionAfter",   Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+       # [Parameter(ParameterSetName="CategoryAfter",  Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+       # [Parameter(ParameterSetName="BeforeOnly", Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+               [int]$insertAfter,
+
+       # [Parameter(ParameterSetName="SectionBefore",  Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+       # [Parameter(ParameterSetName="CategoryBefore", Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+       # [Parameter(ParameterSetName="BeforeOnly", Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+               [int]$insertBefore,
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken",
+
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain"
     )
 Begin   {
 add-type @"
@@ -642,18 +671,28 @@ add-type @"
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
-$AllZones        = Get-FMCZone -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$AllZones        = Get-FMCZone -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
 $AllNetObjects   = @()
-$AllNetObjects   = Get-FMCNetworkObject -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
-$AllNetObjects  += Get-FMCNetworkGroup  -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$AllNetObjects   = Get-FMCNetworkObject -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
+$AllNetObjects  += Get-FMCNetworkGroup  -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
 $AllPortObjects  = @()
-$AllPortObjects  = Get-FMCPortObject -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
-$AllPortObjects += Get-FMCPortGroup  -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$AllPortObjects  = Get-FMCPortObject -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
+$AllPortObjects += Get-FMCPortGroup  -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
          }
 Process {
-$policyUUID = (Get-FMCAccessPolicy -Name $AccessPolicy -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse).id
-$uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/policy/accesspolicies/$policyUUID/accessrules"
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
+$policyUUID = (Get-FMCAccessPolicy -Name $AccessPolicy -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse).id
+
+if ($category -and $insertBefore -and !$qParams)  { $qParams = "?category=$category&insertBefore=$insertBefore" } 
+if ($section  -and $insertBefore -and !$qParams)  { $qParams = "?section=$section&insertBefore=$insertBefore" } 
+if ($category -and $insertAfter  -and !$qParams)  { $qParams = "?category=$category&insertAfter=$insertAfter" } 
+if ($section  -and $insertAfter  -and !$qParams)  { $qParams = "?section=$section&insertAfter=$insertAfter" }  
+if ($category -and !$qParams)                     { $qParams = "?category=$category" } 
+if ($section  -and !$qParams)                     { $qParams = "?section=$section" }  
+if ($insertAfter  -and !$qParams)                 { $qParams = "?insertAfter=$insertAfter" } 
+if ($insertBefore -and !$qParams)                 { $qParams = "?insertBefore=$insertBefore" } 
+
+$uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/policy/accesspolicies/$policyUUID/accessrules$qParams"
+$headers = @{ "X-auth-access-token" = "$AuthToken" ;'Content-Type' = 'application/json' }
 ## Parsing Source or destination Security Zones
 
 if ($SourceZones -or $DestinationZones) {
@@ -828,7 +867,7 @@ $DestinationPorts_split | foreach {
 
 
 if ($IntrusionPolicy) {
-$ipsPolicyID = Get-FMCIntrusionPolicy -Name $IntrusionPolicy -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$ipsPolicyID = Get-FMCIntrusionPolicy -Name $IntrusionPolicy -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
 $ipsPolicy = New-Object -TypeName psobject
 $ipsPolicy | Add-Member -MemberType NoteProperty -name name -Value $ipsPolicyID.name
 $ipsPolicy | Add-Member -MemberType NoteProperty -name id   -Value $ipsPolicyID.id
@@ -862,7 +901,7 @@ Post a new object to the REST API
 This cmdlet will invoke a REST get against the FMC API path
  .EXAMPLE
 $uri = https://fmcrestapisandbox.cisco.com/api/fmc_config/v1/domain/e276abec-e0f2-11e3-8169-6d9ed49b625f/policy/accesspolicies/005056BB-0B24-0ed3-0000-399431961128/accessrules/005056BB-0B24-0ed3-0000-000268479706
-Get-FMCObject -uri $uri -AuthAccessToken 637a1b3f-787b-4179-be40-e19ee2aa9e60
+Get-FMCObject -uri $uri -AuthToken 637a1b3f-787b-4179-be40-e19ee2aa9e60
  .PARAMETER uri
 Resource location
  .PARAMETER AuthAccessToken
@@ -872,8 +911,8 @@ param
     (
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
             [string]$uri,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken"
     )
 Begin   {
 add-type @"
@@ -891,7 +930,7 @@ add-type @"
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
          }
 Process {
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
+$headers = @{ "X-auth-access-token" = "$AuthToken" }
 $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
         }
 End     {
@@ -917,12 +956,12 @@ Domain UUID
     (
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$Name="*",
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$false)]
             [switch]$Terse
     )
@@ -944,7 +983,7 @@ if ($Terse) {$Expanded='false'} else {$Expanded='true'}
       }
 Process {
  $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networks?offset=0&limit=25&expanded=$Expanded"
- $headers     = @{ "X-auth-access-token" = "$AuthAccessToken" }
+ $headers     = @{ "X-auth-access-token" = "$AuthToken" }
  $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
  [int]$pages  = $response.paging.pages
  [int]$offset = 0
@@ -957,10 +996,9 @@ Process {
     $pages--
                       }
 $NetObjects      = $items | Where-Object {$_.name -like $Name}
-        }
-End {
 $NetObjects 
-    }
+        }
+End {}
 }
 function Get-FMCNetworkGroup        {
 <#
@@ -969,7 +1007,7 @@ Displays network groups in FMC
  .DESCRIPTION
 This cmdlet will invoke a REST request against the FMC API and retrieve items under /object/networkgroups
  .EXAMPLE
-# Get-FMCNetworkObject -fmcHost "https://fmcrestapisandbox.cisco.com" -AuthAccessToken 'e276abec-e0f2-11e3-8169-6d9ed49b625f' -Domain '618846ea-6e3e-4d69-8f30-55f31b52ca3e'
+# Get-FMCNetworkObject -fmcHost "https://fmcrestapisandbox.cisco.com" -AuthToken 'e276abec-e0f2-11e3-8169-6d9ed49b625f' -Domain '618846ea-6e3e-4d69-8f30-55f31b52ca3e'
  .PARAMETER fmcHost
 Base URL of FMC
  .PARAMETER AuthAccessToken
@@ -981,12 +1019,12 @@ Domain UUID
     (
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$Name="*",
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [switch]$Terse
     )
@@ -1008,7 +1046,7 @@ if ($Terse) {$Expanded='false'} else {$Expanded='true'}
       }
 Process {
  $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups?offset=0&limit=25&expanded=$Expanded"
- $headers     = @{ "X-auth-access-token" = "$AuthAccessToken" }
+ $headers     = @{ "X-auth-access-token" = "$AuthToken" }
  $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
  [int]$pages  = $response.paging.pages
  [int]$offset = 0
@@ -1047,12 +1085,12 @@ param
     (
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$Name="*",
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$false)]
             [switch]$Terse
     )
@@ -1075,7 +1113,7 @@ if ($Terse) {$Expanded='false'} else {$Expanded='true'}
 Process {
 $offset = 0
 $uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/protocolportobjects?offset=$offset&limit=25&expanded=$Expanded"
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
+$headers = @{ "X-auth-access-token" = "$AuthToken" }
 $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
 $pages = $response.paging.pages
 $items = $response.items
@@ -1127,12 +1165,12 @@ Name of port group object(s). Wildcards accepted
     (
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$Name="*",
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [switch]$Terse
     )
@@ -1155,7 +1193,7 @@ if ($Terse) {$Expanded='false'} else {$Expanded='true'}
 Process {
  [int]$offset = 0
  $uri         = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/portobjectgroups?offset=$offset&limit=25&expanded=$Expanded"
- $headers     = @{ "X-auth-access-token" = "$AuthAccessToken" }
+ $headers     = @{ "X-auth-access-token" = "$AuthToken" }
  $response    = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
  [int]$pages  = $response.paging.pages
  [int]$offset = 0
@@ -1194,12 +1232,12 @@ Name of access policy. Wildcards accepted
     (
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$Name="*",
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$false)]
             [switch]$Terse
     )
@@ -1220,7 +1258,7 @@ add-type @"
 if ($Terse) {$Expanded='false'} else {$Expanded='true'}
          }
 Process {
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
+$headers = @{ "X-auth-access-token" = "$AuthToken" }
 $uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/policy/accesspolicies?offset=0&limit=25&expanded=$Expanded"
 $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
 $pages = $response.paging.pages
@@ -1246,7 +1284,7 @@ Displays intrusion policies in FMC
  .DESCRIPTION
 This cmdlet will invoke a REST request against the FMC API and retrieve intrusion policies
  .EXAMPLE
- Get-FMCIntrusionPolicy -AuthAccessToken 77df501f-d85a-44c6-9ec4-29007a29dbd7 -Domain e276abec-e0f2-11e3-8169-6d9ed49b625f -FMCHost https://fmcrestapisandbox.cisco.com
+ Get-FMCIntrusionPolicy -AuthToken 77df501f-d85a-44c6-9ec4-29007a29dbd7 -Domain e276abec-e0f2-11e3-8169-6d9ed49b625f -FMCHost https://fmcrestapisandbox.cisco.com
   .PARAMETER fmcHost
 Base URL of FMC
  .PARAMETER AuthAccessToken
@@ -1260,12 +1298,12 @@ Name of intrusion policy. Wildcards accepted
     (
         [Parameter(Mandatory=$false, ValueFromPipeline=$false)]
             [string]$Name="*",
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$false)]
             [switch]$Terse
     )
@@ -1286,7 +1324,7 @@ add-type @"
 if ($Terse) {$Expanded='false'} else {$Expanded='true'}
          }
 Process {
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
+$headers = @{ "X-auth-access-token" = "$AuthToken" }
 $uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/policy/intrusionpolicies?offset=0&limit=25&expanded=$Expanded"
 $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
 $pages = $response.paging.pages
@@ -1312,7 +1350,7 @@ Displays file policies in FMC
  .DESCRIPTION
 This cmdlet will invoke a REST request against the FMC API and retrieve file policies
  .EXAMPLE
- Get-FMCFilePolicy -AuthAccessToken 77df501f-d85a-44c6-9ec4-29007a29dbd7 -Domain e276abec-e0f2-11e3-8169-6d9ed49b625f -FMCHost https://fmcrestapisandbox.cisco.com
+ Get-FMCFilePolicy -AuthToken 77df501f-d85a-44c6-9ec4-29007a29dbd7 -Domain e276abec-e0f2-11e3-8169-6d9ed49b625f -FMCHost https://fmcrestapisandbox.cisco.com
   .PARAMETER fmcHost
 Base URL of FMC
  .PARAMETER AuthAccessToken
@@ -1326,12 +1364,12 @@ Name of file policy. Wildcards accepted
     (
         [Parameter(Mandatory=$false, ValueFromPipeline=$false)]
             [string]$Name="*",
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$false)]
             [switch]$Terse
     )
@@ -1352,7 +1390,7 @@ add-type @"
 if ($Terse) {$Expanded='false'} else {$Expanded='true'}
          }
 Process {
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
+$headers = @{ "X-auth-access-token" = "$AuthToken" }
 $uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/policy/filepolicies?offset=0&limit=25&expanded=$Expanded"
 $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
 $pages = $response.paging.pages
@@ -1396,12 +1434,12 @@ Name of the rule(s). Wildcards accepted
             [string]$AccessPolicy,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$RuleName="*",
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$false)]
             [switch]$Terse
     )
@@ -1422,8 +1460,8 @@ add-type @"
 if ($Terse) {$Expanded='false'} else {$Expanded='true'}
          }
 Process {
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
-$ContainerUUID = Get-FMCAccessPolicy -Name $AccessPolicy -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$headers = @{ "X-auth-access-token" = "$AuthToken" }
+$ContainerUUID = Get-FMCAccessPolicy -Name $AccessPolicy -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
 $ContainerUUID = $ContainerUUID.id
 $uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/policy/accesspolicies/$ContainerUUID/accessrules?offset=0&limit=25&expanded=$Expanded"
 $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
@@ -1450,7 +1488,7 @@ Displays zones defined in FMC
  .DESCRIPTION
 This cmdlet will invoke a REST request against the FMC API and display zones
  .EXAMPLE
-Get-FMCZone -Name *INSIDE* -AuthAccessToken 77df501f-d85a-44c6-9ec4-29007a29dbd7 -Domain e276abec-e0f2-11e3-8169-6d9ed49b625f -FMCHost https://fmcrestapisandbox.cisco.com
+Get-FMCZone -Name *INSIDE* -AuthToken 77df501f-d85a-44c6-9ec4-29007a29dbd7 -Domain e276abec-e0f2-11e3-8169-6d9ed49b625f -FMCHost https://fmcrestapisandbox.cisco.com
   .PARAMETER fmcHost
 Base URL of FMC
  .PARAMETER AuthAccessToken
@@ -1464,12 +1502,12 @@ param
     (
         [Parameter(Mandatory=$false, ValueFromPipeline=$false)]
             [string]$Name="*",
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$false)]
             [switch]$Terse
     )
@@ -1490,7 +1528,7 @@ add-type @"
 if ($Terse) {$Expanded='false'} else {$Expanded='true'}
          }
 Process {
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
+$headers = @{ "X-auth-access-token" = "$AuthToken" }
 $uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/securityzones?offset=0&limit=25&expanded=$Expanded"
 $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
 $pages = $response.paging.pages
@@ -1517,7 +1555,7 @@ Removes an object via the REST API
 This cmdlet will invoke a REST delete method against a URI
  .EXAMPLE
 $uri = https://fmcrestapisandbox.cisco.com/api/fmc_config/v1/domain/e276abec-e0f2-11e3-8169-6d9ed49b625f/policy/accesspolicies/005056BB-0B24-0ed3-0000-399431961128/accessrules/005056BB-0B24-0ed3-0000-000268479706
-Remove-FMCObject -uri $uri -AuthAccessToken 637a1b3f-787b-4179-be40-e19ee2aa9e60
+Remove-FMCObject -uri $uri -AuthToken 637a1b3f-787b-4179-be40-e19ee2aa9e60
  .PARAMETER uri
 Resource location
  .PARAMETER AuthAccessToken
@@ -1527,8 +1565,8 @@ param
     (
         [Parameter(Mandatory=$false, ValueFromPipeline=$true)]
             [string]$uri,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken",
         [Parameter(Mandatory=$false, ValueFromPipeline=$true)]
             $Object
     )
@@ -1549,11 +1587,11 @@ add-type @"
          }
 Process {
 if ($Object) { $uri = $Object.links.self }
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" }
+$headers = @{ "X-auth-access-token" = "$AuthToken" }
 $response = Invoke-RestMethod -Method Delete -Uri $uri -Headers $headers
 $response
         }
-End {$uri}
+End {}
 }
 function Update-FMCAccessPolicyRule {
         <#
@@ -1563,7 +1601,7 @@ Updates existing acccess policy rules
 Invokes a REST put method to update new rules in access policies
  .EXAMPLE
 $x = $a | Get-FMCAccessPolicyRule -AccessPolicy TST1111 -RuleName BulkTest* 
-$x | Update-FMCAccessPolicyRule -AuthAccessToken $a.AuthAccessToken -Domain $a.Domain -FMCHost $a.fmcHost -IntrusionPolicy IntPO2 -FilePolicy Malware-Detect
+$x | Update-FMCAccessPolicyRule -AuthToken $a.AuthAccessToken -Domain $a.Domain -FMCHost $a.fmcHost -IntrusionPolicy IntPO2 -FilePolicy Malware-Detect
  .PARAMETER fmcHost
 Base URL of FMC
  .PARAMETER AuthAccessToken
@@ -1640,14 +1678,14 @@ Selects the IPS policy for the rule
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$false)]
             [string]$Comments,
 
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
 
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken",
 
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-           [string]$Domain,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+           [string]$Domain="$env:FMCDomain",
 
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
             $InputObject
@@ -1667,25 +1705,25 @@ add-type @"
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
-if ($SourceZones -or $DestinationZones) {$AllZones = Get-FMCZone -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse}
-if ($IntrusionPolicy)                   {$AllIPSPolicies  = Get-FMCIntrusionPolicy -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse}
-if ($FilePolicy)                        {$AllFilePolicies = Get-FMCIntrusionPolicy -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse}
+if ($SourceZones -or $DestinationZones) {$AllZones = Get-FMCZone -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse}
+if ($IntrusionPolicy)                   {$AllIPSPolicies  = Get-FMCIntrusionPolicy -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse}
+if ($FilePolicy)                        {$AllFilePolicies = Get-FMCIntrusionPolicy -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse}
 if ($SourceNetworks -or $DestinationNetworks) {
        $AllNetObjects   = @()
-       $AllNetObjects   = Get-FMCNetworkObject -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
-       $AllNetObjects  += Get-FMCNetworkGroup  -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+       $AllNetObjects   = Get-FMCNetworkObject -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
+       $AllNetObjects  += Get-FMCNetworkGroup  -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
        }
 if ($SourcePorts    -or $DestinationPorts)    {
        $AllPortObjects  = @()
-       $AllPortObjects  = Get-FMCPortObject -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
-       $AllPortObjects += Get-FMCPortGroup  -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+       $AllPortObjects  = Get-FMCPortObject -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
+       $AllPortObjects += Get-FMCPortGroup  -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
        }
          }
 Process {
 $ruleUUID   = $InputObject.id
 $policyUUID = $InputObject.metadata.accessPolicy.id
 $uri     = "$FMCHost/api/fmc_config/v1/domain/$Domain/policy/accesspolicies/$policyUUID/accessrules/$ruleUUID"
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
+$headers = @{ "X-auth-access-token" = "$AuthToken" ;'Content-Type' = 'application/json' }
 
 if (!$Enabled)                 {$Enabled                 = $InputObject.enabled}
 if (!$Action)                  {$Action                  = $InputObject.action}
@@ -1700,7 +1738,6 @@ if (!$logFiles)                {$logFiles                = $InputObject.logFiles
 if (!$applications)            {$applications            = $InputObject.applications}
 if (!$sourceSecurityGroupTags) {$sourceSecurityGroupTags = $InputObject.sourceSecurityGroupTags}
 if (!$sendEventsToFMC)         {$sendEventsToFMC         = $InputObject.sendEventsToFMC}
-if (!$users)                   {$users                   = $InputObject.users}
 
 ## Parsing Source or destination Security Zones
  if ($SourceZones)         {
@@ -1875,7 +1912,7 @@ $DestinationPorts_split | foreach {
 ## /Parsing Source or destination ports
 
 if ($IntrusionPolicy) {
-$ipsPolicyID = Get-FMCIntrusionPolicy -Name $IntrusionPolicy -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$ipsPolicyID = Get-FMCIntrusionPolicy -Name $IntrusionPolicy -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
 $ipsPolicy   = New-Object -TypeName psobject
 $ipsPolicy   | Add-Member -MemberType NoteProperty -name name -Value $ipsPolicyID.name
 $ipsPolicy   | Add-Member -MemberType NoteProperty -name id   -Value $ipsPolicyID.id
@@ -1883,7 +1920,7 @@ $ipsPolicy   | Add-Member -MemberType NoteProperty -name type -Value $ipsPolicyI
 } else { $ipsPolicy = $InputObject.ipsPolicy}
 
 if ($FilePolicy) {
-$fPolicyID = Get-FMCFilePolicy -Name $FilePolicy -AuthAccessToken $AuthAccessToken -FMCHost $FMCHost -Domain $Domain -Terse
+$fPolicyID = Get-FMCFilePolicy -Name $FilePolicy -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
 $fPolicy   = New-Object -TypeName psobject
 $fPolicy   | Add-Member -MemberType NoteProperty -name name -Value $fPolicyID.name
 $fPolicy   | Add-Member -MemberType NoteProperty -name id   -Value $fPolicyID.id
@@ -1910,7 +1947,6 @@ if ($sNets)                   {$body | Add-Member -MemberType NoteProperty -name
 if ($dNets)                   {$body | Add-Member -MemberType NoteProperty -name destinationNetworks     -Value $dNets }
 if ($sPorts)                  {$body | Add-Member -MemberType NoteProperty -name sourcePorts             -Value $sPorts }
 if ($dPorts)                  {$body | Add-Member -MemberType NoteProperty -name destinationPorts        -Value $dPorts }
-if ($users)                   {$body | Add-Member -MemberType NoteProperty -name users                   -Value $users }
 #if ($newComments)             {$body | Add-Member -MemberType NoteProperty -name newComments             -Value $newComments }
 if ($logBegin)                {$body | Add-Member -MemberType NoteProperty -name logBegin                -Value $logBegin }
 if ($logEnd)                  {$body | Add-Member -MemberType NoteProperty -name logEnd                  -Value $logEnd }
@@ -1921,7 +1957,7 @@ if ($logFiles)                {$body | Add-Member -MemberType NoteProperty -name
 if ($applications)            {$body | Add-Member -MemberType NoteProperty -name applications            -Value $applications}
 if ($sourceSecurityGroupTags) {$body | Add-Member -MemberType NoteProperty -name sourceSecurityGroupTags -Value $sourceSecurityGroupTags }
 if ($sendEventsToFMC)         {$body | Add-Member -MemberType NoteProperty -name sendEventsToFMC         -Value $sendEventsToFMC }
-Invoke-RestMethod -Method Patch -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json -Depth 5)
+Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json -Depth 5)
     }
 End     {}
 }
@@ -1956,12 +1992,12 @@ Member objects or literal networks/hosts/ranges
             [string]$Overridable,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [switch]$Replace,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$Domain,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-            [string]$AuthAccessToken
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$FMCHost="$env:FMCHost",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$Domain="$env:FMCDomain",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+            [string]$AuthToken="$env:FMCAuthToken"
     )
 Begin {
 add-type @"
@@ -1977,12 +2013,13 @@ add-type @"
 "@
 [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
-$inputGroup = Get-FMCNetworkGroup -Name $GroupName -FMCHost $FMCHost -Domain $Domain -AuthAccessToken $AuthAccessToken
+$inputGroup = Get-FMCNetworkGroup -Name $GroupName -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain
 $GroupID    = $inputGroup.id
-$headers = @{ "X-auth-access-token" = "$AuthAccessToken" ;'Content-Type' = 'application/json' }
+$headers = @{ "X-auth-access-token" = "$AuthToken" ;'Content-Type' = 'application/json' }
 $uri = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups/$GroupID"
         }
 Process {
+
 $literals = @()
 $objects  = @()
 $MemberArray = $Members -split ','
@@ -1990,7 +2027,7 @@ $MemberArray | foreach {
              if ($_ -match '(^\d+\.\d+\.\d+\.\d+$|^\d+\.\d+\.\d+\.\d+\/\d\d$|^\d+\.\d+\.\d+\.\d+\-\d+\.\d+\.\d+\.\d+$)') {
                         $literals += $_} else {$objects += $_}}
 if ($objects) {
-$NetworkObjects = Get-FMCNetworkObject -fmcHost $FMCHost -AuthAccessToken $AuthAccessToken -Domain $Domain -Terse
+$NetworkObjects = Get-FMCNetworkObject -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
 $Debug = $objects
 $NetObj = @()
     $objects | foreach {
@@ -2005,7 +2042,7 @@ if ($literals) {
 $NetLit = @()
     $literals | foreach {
     $obj = New-Object psobject
-    $obj | Add-Member -MemberType NoteProperty -Name type  -Value ''
+    $obj | Add-Member -MemberType NoteProperty -Name type  -Value 'Range'
     $obj | Add-Member -MemberType NoteProperty -Name value -Value $_
     $NetLit += $obj
     }
@@ -2013,7 +2050,7 @@ $NetLit = @()
 
  }
 End {
- if ($Replace -eq 'false') {
+if ($Replace -eq 'false') {
  if ($inputGroup.objects)  { $NetObj += $inputGroup.objects }
  if ($inputGroup.literals) { $NetLit += $inputGroup.literals }
  if (!$Description) { if ($inputGroup.description) {$Description = $inputGroup.description}}
@@ -2028,5 +2065,6 @@ if ($Description) {$body | Add-Member -MemberType NoteProperty -name description
 $body | Add-Member -MemberType NoteProperty -name id           -Value $GroupID
 $body | Add-Member -MemberType NoteProperty -name name         -Value $GroupName
 Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
+($body | ConvertTo-Json)
  }
 }
