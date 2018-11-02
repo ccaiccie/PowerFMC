@@ -17,11 +17,11 @@ REST account password
     param
     (
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$FMCHost,
+            [string]$FMCHost='https://fmcrestapisandbox.cisco.com',
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$username,
+            [string]$username='davdecke',
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-            [string]$password
+            [string]$password='jrTmJ3kb'
     )
 Begin {
 add-type @"
@@ -1984,7 +1984,7 @@ Member objects or literal networks/hosts/ranges
     (
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$GroupName,
-        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, ValueFromPipeline=$true)]
             [string]$Members,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$Description,
@@ -2017,6 +2017,8 @@ $inputGroup = Get-FMCNetworkGroup -Name $GroupName -AuthToken $env:FMCAuthToken 
 $GroupID    = $inputGroup.id
 $headers = @{ "X-auth-access-token" = "$AuthToken" ;'Content-Type' = 'application/json' }
 $uri = "$FMCHost/api/fmc_config/v1/domain/$Domain/object/networkgroups/$GroupID"
+$NetObj = @()
+$NetLit = @()
         }
 Process {
 
@@ -2029,7 +2031,6 @@ $MemberArray | foreach {
 if ($objects) {
 $NetworkObjects = Get-FMCNetworkObject -AuthToken $env:FMCAuthToken -FMCHost $env:FMCHost -Domain $env:FMCDomain -Terse
 $Debug = $objects
-$NetObj = @()
     $objects | foreach {
     $id = $NetworkObjects | Where-Object -Property name -EQ $_
     $id = $id.id
@@ -2039,7 +2040,6 @@ $NetObj = @()
     }
 }
 if ($literals) {
-$NetLit = @()
     $literals | foreach {
     $obj = New-Object psobject
     $obj | Add-Member -MemberType NoteProperty -Name type  -Value 'Range'
@@ -2050,21 +2050,20 @@ $NetLit = @()
 
  }
 End {
-if ($Replace -eq 'false') {
+if (!$Replace) {
  if ($inputGroup.objects)  { $NetObj += $inputGroup.objects }
  if ($inputGroup.literals) { $NetLit += $inputGroup.literals }
  if (!$Description) { if ($inputGroup.description) {$Description = $inputGroup.description}}
  if (!$Overridable) { if ($inputGroup.overridable) {$Overridable = $inputGroup.overridable}}
  } 
 $body = New-Object -TypeName psobject
-$body | Add-Member -MemberType NoteProperty -name type        -Value "NetworkGroup"
-if ($objects)     {$body | Add-Member -MemberType NoteProperty -name objects  -Value $NetObj}
-if ($literals)    {$body | Add-Member -MemberType NoteProperty -name literals -Value $NetLit}
+$body | Add-Member -MemberType NoteProperty -name type         -Value "NetworkGroup"
+if ($objects)     {$body | Add-Member -MemberType NoteProperty -name objects     -Value $NetObj}
+if ($literals)    {$body | Add-Member -MemberType NoteProperty -name literals    -Value $NetLit}
 if ($Overridable) {$body | Add-Member -MemberType NoteProperty -name overridable -Value $Overridable}
 if ($Description) {$body | Add-Member -MemberType NoteProperty -name description -Value $Description}
 $body | Add-Member -MemberType NoteProperty -name id           -Value $GroupID
 $body | Add-Member -MemberType NoteProperty -name name         -Value $GroupName
 Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json)
-($body | ConvertTo-Json)
  }
 }
