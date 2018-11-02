@@ -18,7 +18,7 @@ REST account password
     (
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$FMCHost,
-        [Parameter(Mandatory, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$username,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$password
@@ -608,8 +608,9 @@ Selects the IPS policy for the rule
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$DestinationPorts,
 
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-              [bool]$Enabled=$true,
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$false)]
+        [ValidateSet("True","False")] 
+            [string]$Enabled='True',
 
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$IntrusionPolicy,
@@ -1798,10 +1799,8 @@ $SourceNetworks_split | foreach {
             $Obj = New-Object psobject
             $Obj | Add-Member -MemberType NoteProperty -Name value -Value "$_"
             $SourceNetLit += $Obj
-            $SourceNetLit += $InputObject.sourceNetworks.literals
-
+            if ($InputObject.sourceNetworks.literals){$SourceNetLit += $InputObject.sourceNetworks.literals}
                               }
-
                 }
  $sNets = New-Object psobject 
  if ($SourceNetObj) { $sNets | Add-Member -MemberType NoteProperty -Name objects  -Value $SourceNetObj }
@@ -1823,7 +1822,7 @@ $DestinationNetworks_split | foreach {
             $Obj | Add-Member -MemberType NoteProperty -Name name -Value $i.name
             $Obj | Add-Member -MemberType NoteProperty -Name id   -Value $i.id
             $DestinationNetObj += $Obj
-            $DestinationNetObj += $InputObject.destinationNetworks.objects
+            if ($InputObject.destinationNetworks.objects){$DestinationNetObj += $InputObject.destinationNetworks.objects}
             }}
  if ($literals) { $literals | foreach {
             $Obj = New-Object psobject
@@ -1958,6 +1957,7 @@ if ($applications)            {$body | Add-Member -MemberType NoteProperty -name
 if ($sourceSecurityGroupTags) {$body | Add-Member -MemberType NoteProperty -name sourceSecurityGroupTags -Value $sourceSecurityGroupTags }
 if ($sendEventsToFMC)         {$body | Add-Member -MemberType NoteProperty -name sendEventsToFMC         -Value $sendEventsToFMC }
 Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -Body ($body | ConvertTo-Json -Depth 5)
+#($body | ConvertTo-Json -Depth 5)
     }
 End     {}
 }
