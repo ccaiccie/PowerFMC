@@ -1984,7 +1984,7 @@ Member objects or literal networks/hosts/ranges
     (
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
             [string]$GroupName,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, ValueFromPipeline=$true)]
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true, ValueFromPipeline=$true)]
             [string]$Members,
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
             [string]$Description,
