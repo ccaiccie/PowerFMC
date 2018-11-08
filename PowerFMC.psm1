@@ -1729,6 +1729,7 @@ $headers = @{ "X-auth-access-token" = "$AuthToken" ;'Content-Type' = 'applicatio
 if (!$Enabled)                 {$Enabled                 = $InputObject.enabled}
 if (!$Action)                  {$Action                  = $InputObject.action}
 if (!$urls)                    {$urls                    = $InputObject.urls}
+if (!$users)                   {$users                   = $InputObject.users}
 if (!$vlanTags)                {$vlanTags                = $InputObject.vlanTags}
 if (!$logBegin)                {$logBegin                = $InputObject.logBegin} 
 if (!$logEnd)                  {$logEnd                  = $InputObject.logEnd}
@@ -1937,6 +1938,7 @@ if ($Enabled)                 {$body | Add-Member -MemberType NoteProperty -name
 if ($ruleUUID)                {$body | Add-Member -MemberType NoteProperty -name id                      -Value $ruleUUID}
 if ($Action)                  {$body | Add-Member -MemberType NoteProperty -name action                  -Value $Action}
 if ($urls)                    {$body | Add-Member -MemberType NoteProperty -name urls                    -Value $urls}
+if ($users)                   {$body | Add-Member -MemberType NoteProperty -name users                   -Value $users}
 if ($vlanTags)                {$body | Add-Member -MemberType NoteProperty -name vlanTags                -Value $vlanTags}
 if ($ipsPolicy)               {$body | Add-Member -MemberType NoteProperty -name ipsPolicy               -Value $ipsPolicy }
 if ($fPolicy)                 {$body | Add-Member -MemberType NoteProperty -name filePolicy              -Value $fPolicy }
